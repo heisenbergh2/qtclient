@@ -60,8 +60,10 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
         run: bash scripts/lifecycle/publish/sdk.sh
 
+  # PRs: linux only (fast signal). Full desktop matrix on main / dispatch.
   client-desktop:
     name: client-${{ matrix.plat }}
+    if: github.event_name != 'pull_request' || matrix.plat == 'linux-x64'
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -265,8 +267,10 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
         run: bash scripts/lifecycle/publish/desktop.sh
 
+  # Wasm publish gate: main / dispatch only (not every PR).
   wasm:
     name: wasm
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     env:
       QTCLIENT_HOST_BUILD_ID: ${{ github.sha }}
@@ -309,18 +313,6 @@ jobs:
         # Same as desktop: wait for Qt: build GHCR kits — never compile qtdeclarative here.
         run: bash tools/qt/ci-setup.sh --wasm --pull-only --with-vcpkg --with-deps
 
-      # MAIN_MODULE=1 retains the full host/Qt ABI for SIDE_MODULE packs; wasm-ld
-      # needs more than the default 7 GiB runner RAM and dies with an empty log.
-      - name: Add swap for MAIN_MODULE=1 link
-        run: |
-          set -euo pipefail
-          sudo swapoff -a || true
-          sudo fallocate -l 16G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-          free -h
-
       - name: Build stock wasm client
         env:
           QT_ROOT: ${{ runner.temp }}/Qt
@@ -330,12 +322,11 @@ jobs:
           set -euo pipefail
           mkdir -p "$CCACHE_DIR"
           ccache -z || true
-          # Surface wasm-ld/em++ stderr if link fails (ninja often swallows it).
+          # MAIN_MODULE=2 + host_exports.json (no swap). Dump link recipe on fail.
           if ! bash scripts/lifecycle/build/wasm.sh; then
             echo '::error::wasm build failed; last link recipe:' >&2
             ninja -C build/tibia-wasm -t commands tibia 2>/dev/null | tail -n 5 || true
             ls -la build/tibia-wasm/bin/ 2>/dev/null || true
-            dmesg 2>/dev/null | grep -Ei 'oom|killed process' | tail -n 20 || true
             exit 1
           fi
           ccache -s || true

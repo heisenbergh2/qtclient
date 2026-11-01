@@ -3,8 +3,9 @@
 # IdleOT-sized packs import most of the client symbol surface. Rather than a
 # second copy of every TU, the fat host is the `tibia` / `client` executable
 # with ENABLE_EXPORTS (generates an import library packs link against). On
-# Emscripten the binary is MAIN_MODULE=1 and SIDE_MODULE packs resolve
-# symbols from it at dlopen time (MAIN_MODULE=2 DCE drops unreferenced ABI).
+# Emscripten the binary is MAIN_MODULE=2 with cmake/host_exports.json
+# keepalives so SIDE_MODULE packs resolve symbols at dlopen (plain
+# MAIN_MODULE=2 DCE drops unreferenced ABI; MAIN_MODULE=1 OOMs in CI).
 #
 # Consumers:
 #   find_package(QtClient REQUIRED)
@@ -25,10 +26,9 @@ function(qtclient_host_finalize)
   elseif(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT WASM)
     target_link_options(tibia PRIVATE "LINKER:--export-dynamic")
   elseif(EMSCRIPTEN)
-    # Do not add EXPORT_ALL here: with MAIN_MODULE=1 it expands every symbol
-    # onto the wasm-ld command line and CI link dies with an empty log
-    # (arg-list / OOM). MAIN_MODULE=1 on the tibia link line already retains
-    # host/Qt ABI for SIDE_MODULE packs (see client/tibia/CMakeLists.txt).
+    # Host ABI for SIDE_MODULE: MAIN_MODULE=2 + host_exports.json on the tibia
+    # link line (see client/tibia/CMakeLists.txt). Never EXPORT_ALL (cmdline
+    # blowup) and never MAIN_MODULE=1 (CI OOM).
   endif()
 
   if(NOT TARGET qtclient_host)

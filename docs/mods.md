@@ -45,7 +45,7 @@ Optional `urls` on `mod.json` merge into `LauncherEnv` (env > mod > `release_env
   "loginPath": "/login.php",
   "clientServicesPath": "/login.php",
   "createAccountPath": "/login.php",
-  "pages": { "OTC_URL_CREATE_ACCOUNT": "/?subtopic=createaccount" }
+  "pages": { "QTCLIENT_URL_CREATE_ACCOUNT": "/?subtopic=createaccount" }
 }
 ```
 
@@ -72,9 +72,11 @@ qtclient_add_mod(my_pack
 Authors do **not** choose “plugin vs SIDE_MODULE”. The host loads packs with
 `ModLoader::loadFromDirectory` (startup only) via `QLibrary` + `qtclient_mod_entry`.
 
-On WASM the host must be linked with **`-sMAIN_MODULE=1`** (retain host ABI; do not pair with `EXPORT_ALL` — that blows the wasm-ld command line in CI)
-so SIDE_MODULE packs keep Soft/Qt symbols at `dlopen`. `MAIN_MODULE=2` DCE’d
-unreferenced host ABI and IdleOT `mod.wasm` failed with an empty dlerror.
+On WASM the host is **`-sMAIN_MODULE=2`** plus **`cmake/host_exports.json`**
+(`-sEXPORTED_FUNCTIONS=@…`) so IdleOT `SIDE_MODULE` imports survive DCE at
+`dlopen`. Regenerate exports with
+`scripts/lifecycle/lib/gen-host-exports.sh path/to/mod.wasm`. Do **not** use
+`MAIN_MODULE=1` (CI OOM) or `EXPORT_ALL` (wasm-ld cmdline blowup).
 
 ```bash
 # next to client binary, or tip OPFS mods/

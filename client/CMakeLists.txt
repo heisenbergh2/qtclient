@@ -39,7 +39,7 @@ set(CMAKE_VERBOSE_MAKEFILE OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # *****************************************************************************
-# Client (Lua otclient executable retired — product is the tibia executable)
+# Client host: tibia executable (Lua client path retired)
 # *****************************************************************************
 # ${PROJECT_NAME} is not created. Engine sources compile into tibia.
 
@@ -147,7 +147,7 @@ endif()
 
 
 # *****************************************************************************
-# OTClient source files configuration
+# Engine / host source configuration
 # *****************************************************************************
 set(SOURCE_FILES
         tibia/engine/framework/core/application.cpp
@@ -340,14 +340,14 @@ foreach(_src IN LISTS GAMECORE_SOURCES)
   list(APPEND _tibia_engine_abs "${CMAKE_CURRENT_SOURCE_DIR}/${_src}")
 endforeach()
 set(TIBIA_ENGINE_SOURCES "${_tibia_engine_abs}" PARENT_SCOPE)
-add_library(otc_deps INTERFACE)
-target_link_libraries(otc_deps INTERFACE tibia_thirdparty)
-add_dependencies(otc_deps protocol_dispatch_check)
-target_compile_definitions(otc_deps INTERFACE OTC_LUA=0 OTC_NATIVE_WINDOW=0 ${FRAMEWORK_DEFINITIONS})
-target_compile_features(otc_deps INTERFACE cxx_std_${CMAKE_CXX_STANDARD})
+add_library(qtclient_deps INTERFACE)
+target_link_libraries(qtclient_deps INTERFACE tibia_thirdparty)
+add_dependencies(qtclient_deps protocol_dispatch_check)
+target_compile_definitions(qtclient_deps INTERFACE QTCLIENT_LUA=0 QTCLIENT_NATIVE_WINDOW=0 ${FRAMEWORK_DEFINITIONS})
+target_compile_features(qtclient_deps INTERFACE cxx_std_${CMAKE_CXX_STANDARD})
 
 if(NOT MSVC AND CMAKE_INTERPROCEDURAL_OPTIMIZATION MATCHES "^(ON|1|TRUE)$")
-  target_link_options(otc_deps INTERFACE -flto=auto)
+  target_link_options(qtclient_deps INTERFACE -flto=auto)
 endif()
 
 # Engine sources compile into tibia. A framework PCH would also apply to Qt
@@ -371,19 +371,19 @@ if(SPEED_UP_BUILD_UNITY)
   log_option_enabled("Build unity for speed up compilation")
 endif(SPEED_UP_BUILD_UNITY)
 
-# Lua otclient main.cpp / executable retired.
+# Legacy Lua main.cpp / executable path retired.
 
 # *****************************************************************************
 # Build flags
 # *****************************************************************************
 if (NOT MSVC)
   if (CMAKE_COMPILER_IS_GNUCXX)
-    target_compile_options(otc_deps INTERFACE -Wno-deprecated-declarations)
+    target_compile_options(qtclient_deps INTERFACE -Wno-deprecated-declarations)
   endif()
 endif()
 
 if(THREADS_HAVE_PTHREAD_ARG)
-  target_compile_options(otc_deps INTERFACE "-pthread")
+  target_compile_options(qtclient_deps INTERFACE "-pthread")
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -400,12 +400,12 @@ if(ASAN_ENABLED)
 
   if(MSVC)
     string(REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-    target_compile_options(otc_deps INTERFACE /fsanitize=address)
+    target_compile_options(qtclient_deps INTERFACE /fsanitize=address)
 if(TARGET ${PROJECT_NAME})
     target_link_options(${PROJECT_NAME} PUBLIC /fsanitize=address)
 endif()
   else()
-    target_compile_options(otc_deps INTERFACE -fsanitize=address)
+    target_compile_options(qtclient_deps INTERFACE -fsanitize=address)
 if(TARGET ${PROJECT_NAME})
     target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=address)
 endif()
@@ -417,13 +417,13 @@ endif()
 # === DEBUG LOG ===
 # cmake -DDEBUG_LOG=ON ..
 if(CMAKE_BUILD_TYPE MATCHES Debug)
-  target_compile_definitions(otc_deps INTERFACE -DDEBUG_LOG=ON )
+  target_compile_definitions(qtclient_deps INTERFACE -DDEBUG_LOG=ON )
   log_option_enabled("DEBUG LOG")
 else()
   log_option_disabled("DEBUG LOG")
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
-target_compile_definitions(otc_deps INTERFACE ENABLE_DISCORD_RPC=0)
+target_compile_definitions(qtclient_deps INTERFACE ENABLE_DISCORD_RPC=0)
 
 # *****************************************************************************
 # Includes and librarys
@@ -433,7 +433,7 @@ if(MSVC)
   # cpp-httplib 0.43+ requires Windows 10 or later.
   # Full windows.h (no WIN32_LEAN_AND_MEAN). rpcndr `small` is undef'd in
   # framework/win32_platform.h after the SDK headers.
-  target_compile_definitions(otc_deps
+  target_compile_definitions(qtclient_deps
           INTERFACE
           NTDDI_VERSION=0x0A000000
           WINVER=0x0A00
@@ -441,11 +441,11 @@ if(MSVC)
           NOMINMAX
   )
 
-  target_compile_definitions(otc_deps INTERFACE CRASH_HANDLER)
+  target_compile_definitions(qtclient_deps INTERFACE CRASH_HANDLER)
 
   # /FS /Zf are PDB (/Zi) helpers; with /Z7 they are unnecessary and confuse
   # cacheability checks. /MP is fine under Ninja (one TU per cl invocation).
-  target_compile_options(otc_deps INTERFACE /MP /EHsc /bigobj)
+  target_compile_options(qtclient_deps INTERFACE /MP /EHsc /bigobj)
 
   # MSVC 19.44 ICEs in stdext::safe_cast instantiations with release optimization.
   set_source_files_properties(
@@ -471,20 +471,20 @@ if(MSVC)
 
   # /MD to match Qt; vcpkg triplet is x64-windows-static-md (static libs).
   log_option_disabled("STATIC_LIBRARY (MSVC CRT is /MD)")
-  foreach(msvc_target IN ITEMS otc_deps)
+  foreach(msvc_target IN ITEMS qtclient_deps)
     if(TARGET ${msvc_target})
       set_property(TARGET ${msvc_target} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
     endif()
   endforeach()
 
-  target_include_directories(otc_deps
+  target_include_directories(qtclient_deps
           INTERFACE
           $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/>
           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/tibia/engine>
           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   )
-  target_link_libraries(otc_deps
+  target_link_libraries(qtclient_deps
           INTERFACE
           tibia_thirdparty
           ${DBGHELP_LIBRARY}
@@ -494,14 +494,14 @@ if(MSVC)
   )
 
   if (TOGGLE_FRAMEWORK_PROTOBUF)
-      target_link_libraries(otc_deps
+      target_link_libraries(qtclient_deps
           INTERFACE
           protobuf::libprotobuf
           protobuf
       )
   endif()
 elseif(ANDROID)
-  target_include_directories(otc_deps
+  target_include_directories(qtclient_deps
           INTERFACE
           $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/>
           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -509,7 +509,7 @@ elseif(ANDROID)
           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
           ${EGL_INCLUDE_DIR}
   )
-  target_link_libraries(otc_deps
+  target_link_libraries(qtclient_deps
           INTERFACE
           tibia_thirdparty
           ${EGL_LIBRARY}
@@ -523,7 +523,7 @@ elseif(ANDROID)
   )
 
   if (TOGGLE_FRAMEWORK_PROTOBUF)
-      target_link_libraries(otc_deps
+      target_link_libraries(qtclient_deps
           INTERFACE
           protobuf::libprotobuf protobuf
       )
@@ -539,30 +539,35 @@ elseif(WASM)
       "Emscripten -sINITIAL_MEMORY= bytes (fixed WASM heap)")
 
   set(_WASM_LONGJMP_MODE "emscripten")
-  set(_WASM_EXPORTED_FUNCTIONS "_main,_paste_return,_otc_request_shell_layout,_otc_sync_shell_layout,_otc_signal_dom_input")
+  # Shell + IdleOT SIDE_MODULE keepalives — see cmake/host_exports.json
+  # (regen: scripts/lifecycle/lib/gen-host-exports.sh).
+  set(_WASM_HOST_EXPORTS "${CMAKE_SOURCE_DIR}/cmake/host_exports.json")
+  if(NOT EXISTS "${_WASM_HOST_EXPORTS}")
+    message(FATAL_ERROR "WASM: missing ${_WASM_HOST_EXPORTS}")
+  endif()
   set(_WASM_CXX_FLAGS "-O3 -ffast-math -msimd128 -frtti -pthread -fexceptions")
   if(WASM_USE_WASM_EXCEPTIONS)
     set(_WASM_LONGJMP_MODE "wasm")
     string(APPEND _WASM_CXX_FLAGS " -fwasm-exceptions")
   endif()
 
-  # Match desktop otc_deps: PROJECT_SOURCE_DIR (launcher/…), client/,
+  # Match desktop qtclient_deps: PROJECT_SOURCE_DIR (launcher/…), client/,
   # client/tibia, and engine.
-  target_include_directories(otc_deps
+  target_include_directories(qtclient_deps
           INTERFACE
           ${PROJECT_SOURCE_DIR}
           ${CMAKE_CURRENT_SOURCE_DIR}
           ${CMAKE_SOURCE_DIR}/client/tibia
           ${CMAKE_CURRENT_SOURCE_DIR}/tibia/engine
   )
-  target_link_libraries(otc_deps
+  target_link_libraries(qtclient_deps
           INTERFACE
           tibia_thirdparty
           Threads::Threads
   )
 
   if (TOGGLE_FRAMEWORK_PROTOBUF)
-      target_link_libraries(otc_deps
+      target_link_libraries(qtclient_deps
           INTERFACE
           protobuf::libprotobuf protobuf
       )
@@ -570,7 +575,7 @@ elseif(WASM)
 
 
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_options(otc_deps
+    target_compile_options(qtclient_deps
             INTERFACE
             -Wall -Wextra -Wpedantic
     )
@@ -589,7 +594,7 @@ elseif(WASM)
           # setCanvasElementSize: browserwindow applyShellLayout (Debug ASSERTIONS
           # abort on typeof Module.setCanvasElementSize when the symbol is missing).
           -sEXPORTED_RUNTIME_METHODS=ccall,setCanvasElementSize,FS,IDBFS
-          "-sEXPORTED_FUNCTIONS=${_WASM_EXPORTED_FUNCTIONS}"
+          "-sEXPORTED_FUNCTIONS=@${_WASM_HOST_EXPORTS}"
           # Must list every key shell.html assigns on Module (Emscripten abort if extra).
           -sINCOMING_MODULE_JS_API=[locateFile,preRun,postRun,print,printErr,canvas,setStatus,monitorRunDependencies,onAbort]
           -sFORCE_FILESYSTEM
@@ -629,14 +634,14 @@ endif()
   set(CMAKE_EXECUTABLE_SUFFIX ".html")
 
 else() # Linux / macOS
-  target_include_directories(otc_deps
+  target_include_directories(qtclient_deps
           INTERFACE
           $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/>
           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/tibia/engine>
           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   )
-  target_link_libraries(otc_deps
+  target_link_libraries(qtclient_deps
           INTERFACE
           tibia_thirdparty
           Threads::Threads
@@ -644,14 +649,14 @@ else() # Linux / macOS
   )
 
   if (TOGGLE_FRAMEWORK_PROTOBUF)
-      target_link_libraries(otc_deps
+      target_link_libraries(qtclient_deps
           INTERFACE
           protobuf::libprotobuf protobuf
       )
   endif()
 
   if(APPLE AND NOT ANDROID AND NOT WASM)
-    target_link_libraries(otc_deps
+    target_link_libraries(qtclient_deps
             INTERFACE
             ${COCOA_LIBRARY}
             ${COREVIDEO_LIBRARY}
@@ -661,7 +666,7 @@ else() # Linux / macOS
   endif()
 
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_options(otc_deps
+    target_compile_options(qtclient_deps
             INTERFACE
             -Wall -Wextra -Wpedantic
     )
@@ -673,11 +678,11 @@ endif()
 # Product packs under client/mods/*/ override MACOSX_BUNDLE_* there.
 
 if(ENABLE_DISCORD_RPC AND NOT ANDROID)
-        target_link_libraries(otc_deps INTERFACE ${DISCORDRPC_LIBRARY})
+        target_link_libraries(qtclient_deps INTERFACE ${DISCORDRPC_LIBRARY})
 endif()
 
 # *****************************************************************************
-# Enable otclient console only for debug build
+# Enable debug console only for debug build
 # *****************************************************************************
 if(WIN32)
 if(TARGET ${PROJECT_NAME})

@@ -6,7 +6,7 @@
 # (see cmake/QtClientHost.cmake). There is no separate gamecore library.
 #
 # Built two ways:
-#   - from the otclient project (add_subdirectory): desktop, wasm, mobile.
+#   - from the qtclient host (add_subdirectory): desktop, wasm, mobile.
 #   - standalone (cmake -S client/tibia): QML shell only.
 cmake_minimum_required(VERSION 3.22)
 
@@ -38,7 +38,7 @@ if(EMSCRIPTEN OR WASM)
 endif()
 
 
-# otclient's FindOpenGL predates Qt's OpenGL lookup; Qt must use CMake's.
+# Project FindOpenGL predates Qt's OpenGL lookup; Qt must use CMake's.
 set(_tibia_module_path "${CMAKE_MODULE_PATH}")
 list(REMOVE_ITEM CMAKE_MODULE_PATH "${TIBIA_ROOT}/cmake")
 if(APPLE AND OPENGL_FRAMEWORK AND NOT IS_ABSOLUTE "${OPENGL_gl_LIBRARY}")
@@ -72,8 +72,8 @@ endif()
 # Glad is wired after Qt so we never call find_package(OpenGL) before WrapOpenGL.
 if(NOT ANDROID AND NOT WASM AND NOT EMSCRIPTEN AND NOT WIN32)
   add_subdirectory(engine/framework/graphics/glad)
-  if(TARGET otc_deps)
-    target_link_libraries(otc_deps INTERFACE tibia_glad)
+  if(TARGET qtclient_deps)
+    target_link_libraries(qtclient_deps INTERFACE tibia_glad)
   endif()
 endif()
 
@@ -130,7 +130,7 @@ qt_add_executable(tibia
 )
 cip_codegen(tibia)
 target_include_directories(tibia PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-# WASM otc_deps historically omitted repo/client roots that desktop has —
+# WASM qtclient_deps historically omitted repo/client roots that desktop has —
 # keep them on tibia so #include <tibia/…> and "launcher/…" resolve.
 if(WASM OR EMSCRIPTEN)
   target_include_directories(tibia PRIVATE
@@ -591,7 +591,7 @@ if(TIBIA_WITH_GAMECORE)
   else()
     set_property(SOURCE ${_engine_cpp} APPEND PROPERTY COMPILE_OPTIONS "-include" "framework/pch.h")
   endif()
-  target_link_libraries(tibia PRIVATE otc_deps protobuf)
+  target_link_libraries(tibia PRIVATE qtclient_deps protobuf)
   add_dependencies(tibia protocol_dispatch_check)
   # miniaudio (CIP music/ambience/UI); Ogg decode uses stb_vorbis inside
   # miniaudio_impl.cpp — no libvorbis.
@@ -757,13 +757,18 @@ if(EMSCRIPTEN)
   target_link_options(tibia PRIVATE "SHELL:-sFETCH=1")
   if(TIBIA_WASM_MAIN_MODULE)
     # Relocatable host so ModLoader can dlopen pack native/*.wasm (SIDE_MODULE).
-    # MAIN_MODULE=1 disables wasm-opt DCE of unreferenced host/Qt symbols that
-    # IdleOT SIDE_MODULE imports (MAIN_MODULE=2 left those out → dlopen
-    # "Unknown error"). -fPIC is project-wide for Emscripten (root CMakeLists).
+    # MAIN_MODULE=2 links on normal CI RAM; keepalive exports (host_exports.json)
+    # stop DCE of symbols IdleOT SIDE_MODULE imports. Do not use MAIN_MODULE=1
+    # (OOM) or EXPORT_ALL (wasm-ld cmdline blowup). -fPIC is project-wide.
+    set(_tibia_host_exports "${TIBIA_ROOT}/cmake/host_exports.json")
+    if(NOT EXISTS "${_tibia_host_exports}")
+      message(FATAL_ERROR "tibia wasm: missing ${_tibia_host_exports} (run scripts/lifecycle/lib/gen-host-exports.sh)")
+    endif()
     target_link_options(tibia PRIVATE
-      "SHELL:-sMAIN_MODULE=1"
-      "SHELL:-sERROR_ON_UNDEFINED_SYMBOLS=0")
-    message(STATUS "tibia wasm: MAIN_MODULE=1 (runtime mod packs; retain host ABI)")
+      "SHELL:-sMAIN_MODULE=2"
+      "SHELL:-sERROR_ON_UNDEFINED_SYMBOLS=0"
+      "SHELL:-sEXPORTED_FUNCTIONS=@${_tibia_host_exports}")
+    message(STATUS "tibia wasm: MAIN_MODULE=2 + host_exports.json (SIDE_MODULE keepalive)")
   endif()
 
   # Dev shell: the art pack is preloaded; release builds get it from the CDN sync.
