@@ -238,7 +238,7 @@ QString TActionButtonController::tooltipRows() const
         rows += row("actionbar_tooltip_label_sendautomatically", qtTrId(m_setting.sendAutomatically ? "yes" : "no"));
         break;
     case PASSIVEABILITY:
-        // CIP FUN_100c8f250: the ability's name; OTClient has no passive ability data.
+        // CIP FUN_100c8f250: the ability's name; qtclient has no passive ability data.
         rows += row("actionbar_tooltip_label_passiveability", QString());
         break;
     }

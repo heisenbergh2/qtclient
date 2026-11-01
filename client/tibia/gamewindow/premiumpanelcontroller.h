@@ -46,8 +46,7 @@ private:
 /// on (CHANGE_TUTORIAL_MODE_ENABLED, 223).
 ///
 /// The premium time is CIP's game::TPremiumTimeStorage (vtable 0x10262b368),
-/// fed from the player basic data (premium flag and expiration; OTClient's
-/// parsePlayerInfo passes them as g_game.onPremiumExpiration).
+/// fed from the player basic data (premium flag and expiration; CIP's /// parsePlayerInfo passes them as g_game.onPremiumExpiration).
 class TPremiumPanelController final : public cip::tibia::gamewindow::TPremiumPanelController
 {
     Q_OBJECT

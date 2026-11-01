@@ -54,7 +54,7 @@ enum Mode : int
     Mode54 = 54,
 };
 
-/// Hook arguments carry OTClient's mode; CIP routes by the protocol's.
+/// Hook arguments carry CIP's mode; CIP routes by the protocol's.
 int protocolMode(const Args& args, const size_t index)
 {
     if (index < args.size())

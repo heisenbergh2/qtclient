@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2026 OTClient <https://github.com/edubart/otclient>
+ * Copyright (c) 2024-2026 qtclient contributors
  */
 
 #include "cyclopediamap.h"

@@ -15,7 +15,7 @@ namespace tibia::gamewindow {
 /// The `storeAndResourceBalanceHelper` context property (CIP:
 /// TStoreAndResourceBalanceHelperController, ctor 0x100d61af0, metacall
 /// 0x100844920): the gold, coins and other currencies the dialogs show. Read
-/// from OTClient's resource balances (guild bank = ResourceBalance type 0x02).
+/// from CIP's resource balances (guild bank = ResourceBalance type 0x02).
 /// The dust maximum is 100 until an exaltation storage is set.
 class TStoreAndResourceBalanceHelperController final : public cip::tibia::gamewindow::TStoreAndResourceBalanceHelperController
 {

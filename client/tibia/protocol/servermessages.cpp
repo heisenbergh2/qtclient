@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2010-2026 OTClient <https://github.com/edubart/otclient>
+* Copyright (c) 2024-2026 qtclient contributors
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -118,7 +118,7 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                 continue;
             }
 
-            // OTClient / Mehah opcodes Tibia does not use. CIP opcodes are in
+            // qtclient / Mehah opcodes Tibia does not use. CIP opcodes are in
             // dispatch.gen.cpp, generated from upstream/protocol/messages.json.
             switch (opcode) {
                 case Proto::GameServerCharacterSwitch:
@@ -127,7 +127,7 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                 case Proto::GameServerUpdateNeeded:
                     parseUpdateNeeded(msg);
                     break;
-                case Proto::GameServerExtendedOpcode: // otclient only
+                case Proto::GameServerExtendedOpcode: // qtclient only
                     parseExtendedOpcode(msg);
                     break;
                 case Proto::GameServerChangeMapAwareRange:

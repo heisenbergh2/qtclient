@@ -167,7 +167,7 @@ def discover_addresses(port: int) -> list[str]:
         pass
 
     return [
-        f"http://{addr}:{port}/otclient.html"  # NOSONAR: dev-only HTTP endpoint for local testing
+        f"http://{addr}:{port}/qtclient.html"  # NOSONAR: dev-only HTTP endpoint for local testing
         for addr in sorted(addrs)
     ]
 
@@ -205,7 +205,7 @@ def main() -> None:
 
     with httpd:
         urls = discover_addresses(args.port) if args.bind == "0.0.0.0" else [
-            f"http://{args.bind}:{args.port}/otclient.html"  # NOSONAR: debugging server not exposed publicly
+            f"http://{args.bind}:{args.port}/qtclient.html"  # NOSONAR: debugging server not exposed publicly
         ]
         print(f"Serving {serve_root} with COOP/COEP headers (Ctrl+C to stop)")
         for url in urls:

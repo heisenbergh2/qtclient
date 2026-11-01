@@ -1,7 +1,7 @@
 """CIP things-pack readers shared by the AAC sprite renderers (outfits, items).
 
 Stdlib only: minimal protobuf wire decoding of appearances.dat, LZMA1 sprite
-sheets (same decode as otclient spriteappearances.cpp) and PNG/APNG writers.
+sheets (same decode as qtclient spriteappearances.cpp) and PNG/APNG writers.
 """
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ THINGS_ROOT = ROOT / "apps/qtclient/data/things"
 ASSETS_ROOT = ROOT / "apps/qtclient/data/assets"
 
 SHEET_SIZE = 384
-# SpriteLayout → (width, height); see otclient spriteappearances.cpp.
+# SpriteLayout → (width, height); see qtclient spriteappearances.cpp.
 SPRITE_SIZES = [
     (32, 32), (32, 64), (64, 32), (64, 64), (32, 96), (32, 128), (32, 192),
     (32, 384), (64, 96), (64, 128), (64, 192), (64, 384), (96, 32), (96, 64),

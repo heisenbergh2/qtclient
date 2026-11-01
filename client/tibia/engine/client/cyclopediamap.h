@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2026 OTClient <https://github.com/edubart/otclient>
+ * Copyright (c) 2024-2026 qtclient contributors
  *
  * Official CIP map-*.dat index for cyclopedia labels, silhouettes, and
  * subarea occupancy lookup (things/<ver>/subarea-*.bmp.lzma).

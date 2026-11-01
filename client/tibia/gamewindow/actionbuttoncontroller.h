@@ -13,7 +13,7 @@ class TActionBarController;
 /// (CIP: TActionButtonController; setters FUN_100c8d480 spell, FUN_100c8d810
 /// text, FUN_100c8d6f0 object, FUN_100c8d8c0 passive ability; reset
 /// FUN_100c8d1d0 / FUN_100c8d530). Passive abilities show their CIP icon but
-/// OTClient has no passive ability cooldowns or counters.
+/// qtclient has no passive ability cooldowns or counters.
 class TActionButtonController final : public cip::tibia::gamewindow::TActionButtonController
 {
     Q_OBJECT

@@ -48,12 +48,12 @@ _OTC = ROOT / "apps/qtclient"
 if (_OTC / "client/tibia").is_dir():
     DEFAULT_OUT = _OTC / "client/upstream"
     DEFAULT_OVERRIDES = _OTC / "client/overrides"
-    OTC_ROOT = _OTC
+    QTCLIENT_ROOT = _OTC
 else:
     DEFAULT_OUT = ROOT / "client/upstream"
     DEFAULT_OVERRIDES = ROOT / "client/overrides"
-    OTC_ROOT = ROOT
-CACHE = OTC_ROOT / "tmp/re/tibia-sync"
+    QTCLIENT_ROOT = ROOT
+CACHE = QTCLIENT_ROOT / "tmp/re/tibia-sync"
 
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT / "tools"))
@@ -330,7 +330,7 @@ def collect_override_roots(engine_overrides: Path) -> list[Path]:
     roots = []
     if engine_overrides.is_dir():
         roots.append(engine_overrides)
-    mods_dir = OTC_ROOT / "client" / "mods"
+    mods_dir = QTCLIENT_ROOT / "client" / "mods"
     if mods_dir.is_dir():
         for mod in sorted(mods_dir.iterdir()):
             if not mod.is_dir() or mod.name.startswith("_"):
@@ -459,8 +459,8 @@ def main():
         shutil.copytree(staged, args.out)
     log(f"wrote {args.out} ({'changes: see DRIFT.md' if changed else 'no changes'})")
 
-    assets_default = OTC_ROOT / "data/assets"
-    things_legacy = OTC_ROOT / "data/things" / os.environ.get("CLIENT_VERSION", "1533")
+    assets_default = QTCLIENT_ROOT / "data/assets"
+    things_legacy = QTCLIENT_ROOT / "data/things" / os.environ.get("CLIENT_VERSION", "1533")
     things = args.things_dir or (assets_default if assets_default.is_dir() else things_legacy)
     rcc = contents / "MacOS/graphics_resources.rcc"
     if things.is_dir() and rcc.is_file():
@@ -471,12 +471,12 @@ def main():
     else:
         log(f"WARN: art not copied (assets dir {things} missing; run make extract first)")
 
-    proto = OTC_ROOT / "client/tibia/protocol"
+    proto = QTCLIENT_ROOT / "client/tibia/protocol"
     if (args.out / "protocol/messages.json").is_file() and proto.is_dir():
         run(
             sys.executable, proto / "gen_dispatch.py",
             "--messages", args.out / "protocol/messages.json",
-            "--codes", OTC_ROOT / "client/tibia/engine/client/protocolcodes.h",
+            "--codes", QTCLIENT_ROOT / "client/tibia/engine/client/protocolcodes.h",
             "--server", proto / "servermessages.cpp",
             "--client", proto / "clientmessages.cpp",
             "--map", proto / "handler_map.json",

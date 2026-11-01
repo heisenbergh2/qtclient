@@ -42,18 +42,18 @@ _REPO = _TOOLS_DIR.parent
 # Monorepo: tools/extract → repo with apps/qtclient. Standalone qtclient: tools/ next to client/tibia.
 if (_REPO / "apps/qtclient/client/tibia").is_dir():
     ROOT = _REPO
-    OTC_DIR = ROOT / "apps/qtclient"
+    QTCLIENT_DIR = ROOT / "apps/qtclient"
 elif (_REPO / "client/tibia").is_dir():
     ROOT = _REPO
-    OTC_DIR = ROOT
+    QTCLIENT_DIR = ROOT
 else:
     ROOT = _REPO
-    OTC_DIR = ROOT / "apps/qtclient" if (ROOT / "apps/qtclient").is_dir() else ROOT
+    QTCLIENT_DIR = ROOT / "apps/qtclient" if (ROOT / "apps/qtclient").is_dir() else ROOT
 
 TIBIA_CLIENT_DIR = ROOT / "packages/asset-pipeline/data/tibia-client"
 HAS_ASSET_PIPELINE = (ROOT / "packages/asset-pipeline").is_dir()
 DEFAULT_CLIENT_VERSION = os.environ.get("CLIENT_VERSION", "1533")
-DEFAULT_ASSETS_DIR = OTC_DIR / "data" / "assets"
+DEFAULT_ASSETS_DIR = QTCLIENT_DIR / "data" / "assets"
 
 # Shared OS defaults (CipSoft package paths).
 sys.path.insert(0, str(_TOOLS_DIR))
@@ -534,7 +534,7 @@ def main(argv: list[str] | None = None) -> int:
     if assets_dir.name == "assets":
         sounds_dir = assets_dir.parent / "sounds"
     else:
-        sounds_dir = OTC_DIR / "data" / "sounds" / version
+        sounds_dir = QTCLIENT_DIR / "data" / "sounds" / version
 
     install = resolve_tibia_install(tibia)
     log(f"Tibia install: {install['input']}")

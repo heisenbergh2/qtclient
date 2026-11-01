@@ -1,52 +1,65 @@
-# tibia / qtclient
+<p align="center">
+  <strong>qtclient</strong> · <code>otqt</code><br/>
+  CipSoft-compatible <strong>Qt/QML</strong> Tibia client — desktop &amp; browser WASM
+</p>
 
-Qt/QML **CipSoft-compatible** open Tibia client (desktop and browser WASM).
+<p align="center">
+  <a href="https://github.com/qtclient/qtclient/actions"><img alt="CI" src="https://github.com/qtclient/qtclient/actions/workflows/ci.yml/badge.svg" /></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg" /></a>
+</p>
 
-Public repository: **[qtclient/qtclient](https://github.com/qtclient/qtclient)** (`otqt`).
+**qtclient** is a ground-up **CipSoft client port**: official CIP QML UI (vendored,
+never hand-edited), CIP tip launcher protocol, and a C++ engine checked against
+CipSoft behavior. Not affiliated with CipSoft GmbH.
 
-- **Stock** = CIP (`client/upstream/` via `make tibia-sync`, never hand-edit) + CIP class FS under `client/tibia/`.
-- **Overrides** (`client/overrides/`) customize stock CIP QML.
-- **Mods** (`client/mods/`) are optional packs with a unified `mods/<id>/` layout loaded at runtime (`ModLoader`). Public tree ships `_sample`; drop private packs inplace.
+Public repository: **[qtclient/qtclient](https://github.com/qtclient/qtclient)**.
 
-BYO licensed `Tibia.app` for sync/extract — CIP blobs are not redistributed.
+## Why qtclient (vs OTClient)
+
+qtclient is **not** an OTClient fork. It is a CipSoft port: official QML, tip
+launcher, and protocol behavior. Use it when you want CIP parity; use OTClient
+when you want a Lua/OTUI community stack.
+
+| | **qtclient** | **OTClient** |
+|--|--|--|
+| UI | CipSoft **QML** (official chrome) | Lua / OTUI |
+| Upstream | Official CIP client (`make tibia-sync`) | Community protocol tree |
+| Launcher | CIP tip protocol | Custom / third-party updaters |
+| Browser | First-class **WASM** | Limited or separate ports |
+| Extensibility | Runtime **mods/packs** on a stock CIP host | Usually fork the tree |
+| Assets | BYO licensed Tibia / demo tip `assetsurl` | Mixed redistributions |
+
+Built to **match CipSoft** — not to copy or extend OTClient.
+
+### Highlights
+
+- **CIP QML host** — `client/upstream/` from sync; controllers under `client/tibia/`
+- **CIP launcher** — tip metadata Update / Play
+- **Desktop + WASM**
+- **Stock vs packs** — optional `mods/<id>/` at runtime
+- **Mod SDK** — `mod_api_v1`, filesystem QML, F5 hot reload in dev
+- **Session tools** — `--record` / `--replay`
+- **Toolchain** — CMake + Ninja + vcpkg; CipSoft-patched Qt via `make qt`
+
+## Quick start
 
 ```bash
+git clone https://github.com/qtclient/qtclient.git
+cd qtclient
+git submodule update --init third_party/Qt5LegacyControls
 export VCPKG_ROOT="${VCPKG_ROOT:-$HOME/vcpkg}"
-make qt
-make sync TIBIA=/path/to/Tibia.app MSGMAP=…
-make extract TIBIA=/path/to/Tibia.app
+make setup
 make client build && make client run
-# Dev disk QML (F5): make client build DEV=1  (umbrella `make qtclient client build` sets this)
 ```
 
-## Stock vs mods
-
-| Build | CMake |
-|-------|--------|
-| Stock CIP only | `-DQTCLIENT_ENABLE_MODS=OFF` |
-| Auto-enable packs in `client/mods/` (except `_sample`) | default `QTCLIENT_ENABLE_MODS=ON` |
-| Explicit list | `-DQTCLIENT_MODS=my_pack;other` |
-| Sample SDK pack | `-DQTCLIENT_MODS=_sample` |
-
-### Add a private mod inplace (not committed)
-
-`client/mods/*` is gitignored except `_sample` and `README.md`. Any of:
-
-```bash
-cp -R ~/my-mod client/mods/my_mod
-ln -s ~/src/my-mod client/mods/my_mod
-```
-
-Build with `qtclient_add_mod` and drop the staged `mods/<id>/` tree next to `client` (or let ModLoader find `QTCLIENT_MODS_DIR`). See [`client/mods/_sample`](client/mods/_sample) and [`docs/mods.md`](docs/mods.md).
+BYO licensed `Tibia.app` for sync/extract — CipSoft blobs are never redistributed.
 
 ## Docs
 
 | Doc | Topic |
 |-----|--------|
-| [docs/open-source.md](docs/open-source.md) | Public vs private, export, CI reuse |
-| [docs/mods.md](docs/mods.md) | Pack format, ModLoader, WorldView |
-| [docs/public/CONTRIBUTING.md](docs/public/CONTRIBUTING.md) | Public contributor + ccache/Qt reuse |
-| [SECURITY.md](SECURITY.md) | Vulnerability reporting |
+| [docs/public/README.md](docs/public/README.md) | Layout |
+| [docs/mods.md](docs/mods.md) | Packs |
+| [docs/open-source.md](docs/open-source.md) | Public vs packs |
+| [SECURITY.md](SECURITY.md) | Security |
 | [AGENTS.md](AGENTS.md) | CIP-as-upstream rules |
-
-C++ deps: **vcpkg**. Qt: CipSoft-Tibia/Qt5 (`third_party/qt5-cip`) via `make qt` — warm prefixes `ghcr.io/qtclient/qt`. LegacyControls: `third_party/Qt5LegacyControls`.

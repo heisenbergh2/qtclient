@@ -46,7 +46,7 @@ rsync -a \
   --exclude 'records/*.cam' \
   --exclude 'smoke-world.cam' \
   --exclude 'aqtinstall.log' \
-  --exclude 'otclient.log' \
+  --exclude 'qtclient.log' \
   --exclude 'crystalotc.log' \
   --exclude 'packet.log' \
   --exclude '.github/workflows/ci.yml' \
@@ -93,7 +93,7 @@ export_scrub() {
     -e 's/IDLEOT/QTCLIENT/g' \
     -e 's|ghcr\.io/idleot/qt-cip|ghcr.io/qtclient/qt-cip|g' \
     -e 's|ghcr\.io/otquartz/qt-cip|ghcr.io/qtclient/qt-cip|g' \
-    -e 's|github\.com/idleot/otclient|github.com/qtclient/qtclient|g' \
+    -e 's|github\.com/idleot/qtclient|github.com/qtclient/qtclient|g' \
     -e 's|github\.com/otquartz/otquartz|github.com/qtclient/qtclient|g' \
     -e 's|static\.idleot\.com|static.tibia.com|g' \
     "$f" 2>/dev/null || true
@@ -142,7 +142,7 @@ fi
 # Makefile banner
 if [[ -f "$DEST/Makefile" ]]; then
   sed -i.bak '1s/.*/# qtclient (otqt) — CipSoft-compatible Qt\/QML Tibia client/' "$DEST/Makefile" || true
-  sed -i.bak 's/OTClient (IdleOT tibia)/qtclient (otqt)/g;s/OTClient — IdleOT tibia client/qtclient (otqt)/g;s/otquartz/qtclient/g' "$DEST/Makefile" || true
+  sed -i.bak 's/qtclient (IdleOT tibia)/qtclient (otqt)/g;s/qtclient — IdleOT tibia client/qtclient (otqt)/g;s/otquartz/qtclient/g' "$DEST/Makefile" || true
   rm -f "$DEST/Makefile.bak"
 fi
 

@@ -46,7 +46,7 @@ int maximumBuyAmount(const TNPCTradeGood& good, uint64_t money, uint32_t capacit
 int maximumSellAmount(const TNPCTradeGood& good, uint32_t owned);
 
 /// The open NPC trade (CIP: TNPCTradeStorage, ctor 0x10103d1e0, vtable
-/// 0x102642500) fed by OTClient's OpenNPCTrade / PlayerGoods / CloseNPCTrade
+/// 0x102642500) fed by CIP's OpenNPCTrade / PlayerGoods / CloseNPCTrade
 /// (CIP's TNPCTradeProtocolMessageHandler 0x10103bb60).
 class TNPCTradeStorage final : public cip::tibia::trade::TNPCTradeStorage
 {

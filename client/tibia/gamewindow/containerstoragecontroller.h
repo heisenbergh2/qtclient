@@ -85,7 +85,7 @@ Q_SIGNALS:
 
 private:
     void onContainerOpened(const ContainerPtr& container);
-    /// OTClient closes a replaced container after opening its successor.
+    /// qtclient closes a replaced container after opening its successor.
     void onContainerClosed(int containerId);
     void scheduleUpdate(int containerId);
     void flushUpdates();

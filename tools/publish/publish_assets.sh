@@ -66,8 +66,8 @@ publish_things() {
     src="$OTC/data/assets"
   elif [[ -f "$OTC/data/things/$VERSION/catalog-content.json" ]]; then
     src="$OTC/data/things/$VERSION"
-  elif [[ -f "$ROOT/.cache/otclient/things/catalog-content.json" ]]; then
-    src="$ROOT/.cache/otclient/things"
+  elif [[ -f "$ROOT/.cache/qtclient/things/catalog-content.json" ]]; then
+    src="$ROOT/.cache/qtclient/things"
   else
     src="$OTC/data/assets"
   fi

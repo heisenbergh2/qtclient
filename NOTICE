@@ -1,21 +1,19 @@
-qtclient (CIP-compatible Qt/QML client)
-======================================
+qtclient (CipSoft-compatible Qt/QML client)
+==========================================
 
-Not affiliated with CipSoft GmbH. This project is an independent,
-parity-oriented implementation of a CipSoft-compatible client and launcher.
-It is **not** an official Tibia product. "Tibia" and related marks are
-trademarks of CipSoft GmbH; use of those names here is descriptive only.
+Not affiliated with CipSoft GmbH. This project is an independent
+implementation of a CipSoft-compatible client and launcher. It is **not** an
+official Tibia product. "Tibia" and related marks are trademarks of CipSoft
+GmbH; use of those names here is descriptive only.
 
-This is not a clean-room rewrite: source comments and behavior aim at CIP
-parity. Reverse-engineering tooling is not redistributed in the public tree.
+qtclient is a Qt/QML port of the CipSoft client architecture: vendored CIP QML
+and contracts via `make tibia-sync` / `make sync`, handwritten controllers under
+`client/tibia/`, and a CIP tip-protocol launcher. Behavior is checked against
+CipSoft — not against other open clients.
 
 MIT (this repository)
 ---------------------
 Copyright (c) 2024-2026 qtclient contributors. See LICENSE.
-
-OTClient (MIT)
---------------
-Portions of the engine tree derive from OTClient (MIT). See LICENSE.
 
 Qt
 --
@@ -23,11 +21,11 @@ Builds link against Qt 6 (typically LGPL). Redistributors of binaries must
 comply with the Qt license applicable to their build (LGPL or commercial).
 Qt is not shipped in this repository; install with `make qt`.
 
-xBRZ (product pack only)
-------------------------
-When a product pack under client/mods/ links Zenju xBRZ (GPLv3) — e.g. for HD
+xBRZ (optional product pack)
+----------------------------
+When a product pack under `client/mods/` links Zenju xBRZ (GPLv3) — e.g. for HD
 sprite scaling — that pack is subject to GPLv3. Stock CIP-core builds only
-expose the sprites/hdscale hook and do not link xBRZ.
+expose the `sprites/hdscale` hook and do not link xBRZ.
 
 CipSoft material (BYO license)
 ------------------------------
@@ -36,10 +34,3 @@ The sync tree (`client/upstream/`, `launcher/upstream/`) and extracted assets
 are **not** redistributed by a public cut of this project. Obtain them from a
 licensed Tibia install via `make tibia-sync` / `make sync` and `make extract`.
 See docs/open-source.md.
-
-Hybrid tip / automated downloads
---------------------------------
-Documentation may show tip metadata that points `assetsurl` at CipSoft CDN
-hosts. Running the launcher or fetch helpers against those URLs is subject to
-CipSoft Terms of Service and your local license. Do not attach CipSoft asset
-blobs to GitHub Releases. See docs/public/hybrid-tip.md.

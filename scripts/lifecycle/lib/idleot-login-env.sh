@@ -1,7 +1,7 @@
 # Deprecated: login URLs live in pack mod.json (env > mod > release_env > CipSoft).
 # IdleOT: tip mods/idleot after make qtclient client install.
 # Demo: tip mods/default (myAAC). --no-mods → www.tibia.com.
-# OTC_LOGIN_* remains an escape hatch — do not source this file from start scripts.
+# QTCLIENT_LOGIN_* remains an escape hatch — do not source this file from start scripts.
 #
 # Optional tip/CDN helpers for local tooling only (not login paths):
 # shellcheck shell=bash

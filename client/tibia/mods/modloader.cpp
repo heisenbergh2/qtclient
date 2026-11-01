@@ -10,6 +10,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonValue>
+#include <QList>
 #include <QLoggingCategory>
 
 #include <algorithm>
@@ -191,38 +192,29 @@ QString findNamedPack(const QStringList& tipRoots, const QString& name)
     return {};
 }
 
-/// Pick at most one pack directory under tip mods roots.
+/// Pick at most one pack (lowest mod.json priority wins).
 QString pickTipPack(const QStringList& tipRoots)
 {
-    const QString idleot = findNamedPack(tipRoots, QStringLiteral("idleot"));
-    if (!idleot.isEmpty())
-        return idleot;
-    const QString def = findNamedPack(tipRoots, QStringLiteral("default"));
-    if (!def.isEmpty())
-        return def;
-
-    QStringList others;
+    struct Candidate { QString path; int priority = 100; };
+    QList<Candidate> found;
     for (const QString& root : tipRoots) {
         QDir dir(root);
-        if (!dir.exists())
-            continue;
-        const QFileInfoList entries =
-            dir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
-        for (const QFileInfo& info : entries) {
-            if (info.fileName().startsWith(QLatin1Char('_')))
-                continue;
+        if (!dir.exists()) continue;
+        for (const QFileInfo& info : dir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name)) {
+            if (info.fileName().startsWith(QLatin1Char('_'))) continue;
             PackMeta meta;
-            if (!readMeta(info.absoluteFilePath(), &meta) || !meta.autoload)
-                continue;
-            others.append(info.absoluteFilePath());
+            if (!readMeta(info.absoluteFilePath(), &meta) || !meta.autoload) continue;
+            found.append({info.absoluteFilePath(), meta.priority});
         }
     }
-    others.removeDuplicates();
-    if (others.size() > 1) {
-        qCWarning(lcModLoader) << "multiple tip packs without idleot/default; using"
-                               << others.first() << "of" << others;
-    }
-    return others.isEmpty() ? QString() : others.first();
+    if (found.isEmpty()) return {};
+    std::sort(found.begin(), found.end(), [](const Candidate& a, const Candidate& b) {
+        if (a.priority != b.priority) return a.priority < b.priority;
+        return a.path < b.path;
+    });
+    if (found.size() > 1)
+        qCWarning(lcModLoader) << "multiple tip packs; using" << found.first().path;
+    return found.first().path;
 }
 
 /// QTCLIENT_MODS_DIR: pack dir with mod.json, or parent with a single autoload child.

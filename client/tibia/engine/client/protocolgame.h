@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2026 OTClient <https://github.com/edubart/otclient>
+ * Copyright (c) 2024-2026 qtclient contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -236,7 +236,7 @@ public:
     void sendWeaponProficiencySlotAction(uint8_t actionType, uint16_t itemId, uint8_t level, uint8_t perkPosition, int offerIndex = 0);
     void sendBossDifficultySelectionAction(uint8_t action, uint16_t difficulty = 0);
     
-    // otclient only
+    // qtclient only
     void sendChangeMapAwareRange(uint8_t xrange, uint8_t yrange);
 
 protected:

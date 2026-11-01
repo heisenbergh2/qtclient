@@ -3,8 +3,8 @@
 CIP launcher protocol with **our** client package and **CipSoft** assets.
 Login comes from the single tip pack [`mods/default`](../../client/mods/default/mod.json)
 ([myAAC](https://github.com/slawkens/myaac) at `http://127.0.0.1/login.php`).
-`--no-mods` (no pack) talks to real CipSoft. IdleOT tip **replaces** `mods/default`
-with `mods/idleot` (never stacked).
+`--no-mods` (no pack) talks to real CipSoft. product tip **replaces** `mods/default`
+with `mods/pack` (never stacked).
 
 | Tip field | Points at |
 |-----------|-----------|
@@ -23,7 +23,7 @@ Example tip: [`tibiametadata.demo.json`](tibiametadata.demo.json).
 5. **Update** installs our client package + CipSoft `assets-current` (package includes `mods/default`).
 6. **Play** logs in at `http://127.0.0.1/login.php` with no env tweaks.
 
-Force the default pack from a tip that also has IdleOT (or with `QTCLIENT_MODS_DIR` set):
+Force the default pack from a tip that also has product (or with `QTCLIENT_MODS_DIR` set):
 
 ```bash
 ./client --default-mod
@@ -33,16 +33,16 @@ Force the default pack from a tip that also has IdleOT (or with `QTCLIENT_MODS_D
 Override AAC host/path without rebuilding (env escape hatch, wins over mod):
 
 ```bash
-export OTC_LOGIN_HOST=aac.example.com
-export OTC_LOGIN_PATH=/login.php
+export QTCLIENT_LOGIN_HOST=aac.example.com
+export QTCLIENT_LOGIN_PATH=/login.php
 ```
 
 Or edit/reinstall `mods/default/mod.json` `urls` — no host rebuild.
 
-## IdleOT portal
+## product portal
 
-Product pack in `apps/idleot-client` (`QTCLIENT_PACK`). Tip install:
-`make qtclient client install` merges `mods/idleot` (with MODULE) and removes
+Product pack in `apps/pack-client` (`QTCLIENT_PACK`). Tip install:
+`make qtclient client install` merges `mods/pack` (with MODULE) and removes
 `mods/default`. Run loads that tip pack only.
 
 ## Running a tip

@@ -152,21 +152,21 @@ def release_env_entry(
     }
     # Origin for LauncherEnv when mod.json omits loginBase (or as lower-precedence fallback).
     if login_profile != "mod" or site_url:
-        values["OTC_LOGIN_SCHEME"] = url.scheme
-        values["OTC_LOGIN_HOST"] = url.hostname
+        values["QTCLIENT_LOGIN_SCHEME"] = url.scheme
+        values["QTCLIENT_LOGIN_HOST"] = url.hostname
         if url.port:
-            values["OTC_LOGIN_PORT"] = str(url.port)
+            values["QTCLIENT_LOGIN_PORT"] = str(url.port)
         elif login_profile == "cip" and url.hostname in ("127.0.0.1", "localhost"):
-            values["OTC_LOGIN_PORT"] = "5173"
+            values["QTCLIENT_LOGIN_PORT"] = "5173"
 
     if login_profile == "cip":
-        values["OTC_LOGIN_PATH"] = "/clientservices/loginservice.php"
-        values["OTC_CLIENTSERVICES_PATH"] = "/clientservices/clientservices.php"
-        values["OTC_CREATE_ACCOUNT_PATH"] = "/clientservices/accountcreationclientservices.php"
+        values["QTCLIENT_LOGIN_PATH"] = "/clientservices/loginservice.php"
+        values["QTCLIENT_CLIENTSERVICES_PATH"] = "/clientservices/clientservices.php"
+        values["QTCLIENT_CREATE_ACCOUNT_PATH"] = "/clientservices/accountcreationclientservices.php"
     elif login_profile == "myaac":
-        values["OTC_LOGIN_PATH"] = "/login.php"
-        values["OTC_CLIENTSERVICES_PATH"] = "/login.php"
-        values["OTC_CREATE_ACCOUNT_PATH"] = "/login.php"
+        values["QTCLIENT_LOGIN_PATH"] = "/login.php"
+        values["QTCLIENT_CLIENTSERVICES_PATH"] = "/login.php"
+        values["QTCLIENT_CREATE_ACCOUNT_PATH"] = "/login.php"
 
     if asset_base:
         values["QTCLIENT_ASSET_BASE"] = asset_base.rstrip("/")

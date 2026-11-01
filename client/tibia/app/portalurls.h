@@ -10,7 +10,7 @@ namespace tibia::app {
 
 /// Product portal URLs for CIP OPEN_URL_* / OPEN_NEWS actions (CIP reads
 /// tibiaPageUrl and friends from the [URLS] blob). Defaults are CipSoft-shaped
-/// extensionless website paths under loginBase; OTC_URL_* / paymentsBase override.
+/// extensionless website paths under loginBase; QTCLIENT_URL_* / paymentsBase override.
 class PortalUrls
 {
 public:

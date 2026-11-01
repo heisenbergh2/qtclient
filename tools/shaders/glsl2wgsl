@@ -30,7 +30,7 @@ from pathlib import Path
 # Bump when the rewrite changes, so --check flags every output made by the old one.
 TOOL_VERSION = 1
 
-OTC_DIR = Path(__file__).resolve().parents[2]
+QTCLIENT_DIR = Path(__file__).resolve().parents[2]
 SEARCH_ROOTS = ("modules", "mods", "data")
 
 # The backend's per-draw uniform block, in std140 order. Must match DrawUniforms and the
@@ -76,7 +76,7 @@ def module_shaders() -> list[Path]:
     that happen to use the .frag extension; nothing loads them as fragment programs."""
     found: list[Path] = []
     for root in SEARCH_ROOTS:
-        base = OTC_DIR / root
+        base = QTCLIENT_DIR / root
         if base.is_dir():
             found.extend(p for p in base.rglob("*.frag") if "vertex" not in p.relative_to(base).parts)
     return sorted(found)
@@ -179,7 +179,7 @@ def require(tool: str) -> str:
 
 
 def convert(frag: Path, glslang: str, naga: str) -> None:
-    rel = frag.relative_to(OTC_DIR).as_posix()
+    rel = frag.relative_to(QTCLIENT_DIR).as_posix()
     glsl = rewrite(frag.read_text(encoding="utf-8"), rel)
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -206,15 +206,15 @@ def convert(frag: Path, glslang: str, naga: str) -> None:
         f"// glsl2wgsl v{TOOL_VERSION} source-sha256: {source_hash(frag)}\n\n"
     )
     wgsl_path(frag).write_text(header + wgsl, encoding="utf-8")
-    print(f"[glsl2wgsl] {wgsl_path(frag).relative_to(OTC_DIR).as_posix()}")
+    print(f"[glsl2wgsl] {wgsl_path(frag).relative_to(QTCLIENT_DIR).as_posix()}")
 
 
 def main(argv: list[str]) -> int:
     if argv[:1] == ["--check"]:
         stale = [f for f in module_shaders() if not is_current(f)]
         for frag in stale:
-            print(f"::error::{wgsl_path(frag).relative_to(OTC_DIR).as_posix()} is missing or stale; "
-                  f"run apps/otclient/tools/shaders/glsl2wgsl")
+            print(f"::error::{wgsl_path(frag).relative_to(QTCLIENT_DIR).as_posix()} is missing or stale; "
+                  f"run apps/qtclient/tools/shaders/glsl2wgsl")
         if stale:
             return 1
         print(f"[ok] {len(module_shaders())} module shaders have current WGSL")

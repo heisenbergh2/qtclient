@@ -21,12 +21,11 @@ struct GameserverCredentials
     QString host;
     int port = 0;
     QString characterName;
-    /// Records the session's packets to this file (OTClient's packet log), for replay().
+    /// Records the session's packets to this file (CIP's packet log), for replay().
     QString recordTo;
 };
 
-/// A live game server session (CIP: TGameserverGameSession) on OTClient's
-/// protocol and game model: g_game's connection, with its engine hooks turned
+/// A live game server session (CIP: TGameserverGameSession) on CIP's /// protocol and game model: g_game's connection, with its engine hooks turned
 /// into CIP's session signals.
 class TGameserverGameSession final : public cip::tibia::game::TGameserverGameSession
 {

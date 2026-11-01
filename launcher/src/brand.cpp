@@ -125,14 +125,7 @@ void LauncherBrand::load(int argc, char* argv[])
     if (!mods.exists())
         return;
 
-    const QString idleot = mods.filePath(QStringLiteral("idleot"));
-    if (tryLoadBrandDir(idleot))
-        return;
-    const QString def = mods.filePath(QStringLiteral("default"));
-    if (tryLoadBrandDir(def))
-        return;
-
-    // Fallback: sole non-_ child with brand.json
+    // First tip pack with brand.json wins (product tips ship one mods/<id>/).
     const QFileInfoList entries = mods.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
     for (const QFileInfo& info : entries) {
         if (info.fileName().startsWith(QLatin1Char('_')))

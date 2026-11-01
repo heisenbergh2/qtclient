@@ -1,3 +1,3 @@
 #pragma once
 
-// Lua value casts retired with OTC_LUA. Header kept so leftover includes compile.
+// Lua value casts retired with QTCLIENT_LUA. Header kept so leftover includes compile.

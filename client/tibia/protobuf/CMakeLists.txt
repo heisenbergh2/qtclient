@@ -18,7 +18,7 @@ if(NOT TIBIA_PROTOC_EXECUTABLE)
 endif()
 message(STATUS "Found Protobuf Compiler: ${TIBIA_PROTOC_EXECUTABLE}")
 
-set(_otclient_proto_target cip_messages)
+set(_qtclient_proto_target cip_messages)
 
 include_directories(${PROTOBUF_INCLUDE_DIRS})
 
@@ -43,27 +43,27 @@ if (MSVC)
 	endif()
 
 	if (BUILD_STATIC_LIBRARY)
-		add_library(${_otclient_proto_target} STATIC ${ProtoFiles})
-		set_property(TARGET ${_otclient_proto_target} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+		add_library(${_qtclient_proto_target} STATIC ${ProtoFiles})
+		set_property(TARGET ${_qtclient_proto_target} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 	else()
-		add_library(${_otclient_proto_target} ${ProtoFiles})
-		set_property(TARGET ${_otclient_proto_target} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+		add_library(${_qtclient_proto_target} ${ProtoFiles})
+		set_property(TARGET ${_qtclient_proto_target} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 	endif()
 
-	target_compile_options(${_otclient_proto_target} PRIVATE /FS)
-	set_target_properties(${_otclient_proto_target} PROPERTIES COMPILE_PDB_NAME ${_otclient_proto_target})
+	target_compile_options(${_qtclient_proto_target} PRIVATE /FS)
+	set_target_properties(${_qtclient_proto_target} PROPERTIES COMPILE_PDB_NAME ${_qtclient_proto_target})
 else()
-	add_library(${_otclient_proto_target} ${ProtoFiles})
+	add_library(${_qtclient_proto_target} ${ProtoFiles})
 endif()
 
-add_library(protobuf ALIAS ${_otclient_proto_target})
+add_library(protobuf ALIAS ${_qtclient_proto_target})
 
-target_link_libraries(${_otclient_proto_target}
+target_link_libraries(${_qtclient_proto_target}
 	PUBLIC
 		protobuf::libprotobuf
 )
-target_compile_definitions(${_otclient_proto_target} PUBLIC _DISABLE_VECTOR_ANNOTATION _DISABLE_STRING_ANNOTATION)
-target_include_directories(${_otclient_proto_target} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_compile_definitions(${_qtclient_proto_target} PUBLIC _DISABLE_VECTOR_ANNOTATION _DISABLE_STRING_ANNOTATION)
+target_include_directories(${_qtclient_proto_target} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 set(PROTOBUF_GENERATE_DEPENDENCIES)
 if(TARGET protobuf::protoc)
@@ -81,7 +81,7 @@ if(NOT COMMAND protobuf_generate)
 endif()
 
 protobuf_generate(
-	TARGET ${_otclient_proto_target}
+	TARGET ${_qtclient_proto_target}
 	LANGUAGE cpp
 	IMPORT_DIRS ${CIP_PROTO_DIR}
 	DEPENDENCIES ${PROTOBUF_GENERATE_DEPENDENCIES}

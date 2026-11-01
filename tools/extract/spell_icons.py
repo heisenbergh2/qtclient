@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sync OTClient spell icon strips and client IDs from a Tibia install."""
+"""Sync qtclient spell icon strips and client IDs from a Tibia install."""
 from __future__ import annotations
 
 import argparse
@@ -250,7 +250,7 @@ def map_client_id(
 def update_spells_lua(
     remap: dict[int, int], max_icon: int, dry_run: bool = False
 ) -> int:
-    # Legacy OTClient Lua module — retired with the Lua client. Keep the remap
+    # Legacy qtclient Lua module — retired with the Lua client. Keep the remap
     # path for optional checkouts that still ship modules/gamelib/spells.lua.
     if not SPELLS_LUA.is_file():
         return 0

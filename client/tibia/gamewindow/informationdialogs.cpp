@@ -390,7 +390,7 @@ void TInformationDialogs::hookPrey()
     preyAction(A::PREY_REQUEST_CHANGE_AUTO_EXPAND_TYPE, 5);
 
     // Every slot state ends with the free list reroll (seconds from now) and
-    // the automatic extension option (OTClient's "wildcards" outside the
+    // the automatic extension option (CIP's "wildcards" outside the
     // active state).
     const auto slotData = [this](const Args& args, const size_t rerollIndex, const size_t optionIndex) -> prey::TPreyData* {
         prey::TPreyData* data = m_prey->storage()->slot(static_cast<int>(argInt(args, 0)));

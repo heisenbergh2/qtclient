@@ -19,7 +19,7 @@ FUNC_RE = re.compile(
     re.M,
 )
 
-# CIP names whose handler is not the legacy OTClient switch target.
+# CIP names whose handler is not the legacy qtclient switch target.
 SERVER_CALL_OVERRIDE = {
     "ReadyForSecondaryConnection": "parseReadyForSecondaryConnection(msg);",
     "OutfitMemorial": "parseOutfitMemorial(msg);",

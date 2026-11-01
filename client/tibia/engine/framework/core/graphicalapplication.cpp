@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2026 OTClient <https://github.com/edubart/otclient>
+ * Copyright (c) 2024-2026 qtclient contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -44,7 +44,7 @@
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
 #include <algorithm>
-#if OTC_NATIVE_WINDOW
+#if QTCLIENT_NATIVE_WINDOW
 #include <framework/platform/browserwindow.h>
 #endif
 #endif
@@ -392,7 +392,7 @@ void GraphicalApplication::setHUDScale(const float v)
     // Upper bound covers 1.5x HUD on 3x+ device pixel ratios.
     const float scale = std::clamp(v > 0.f ? v : 1.f, 0.35f, 8.f);
 
-#if defined(__EMSCRIPTEN__) && OTC_NATIVE_WINDOW
+#if defined(__EMSCRIPTEN__) && QTCLIENT_NATIVE_WINDOW
     // Same as desktop: density owns HUD scale; canvas stays 1:1 with the play box.
     g_window.setDisplayDensity(scale);
 
@@ -402,8 +402,8 @@ void GraphicalApplication::setHUDScale(const float v)
         if (typeof window.otcApplyUiScale === "function") {
             window.otcApplyUiScale($0);
         }
-        setValue($1, (window.OTC_UI_LAYOUT_W | 0), "i32");
-        setValue($2, (window.OTC_UI_LAYOUT_H | 0), "i32");
+        setValue($1, (window.QTCLIENT_UI_LAYOUT_W | 0), "i32");
+        setValue($2, (window.QTCLIENT_UI_LAYOUT_H | 0), "i32");
     }, scale, &lw, &lh);
 
     g_browserWindow.refreshPlayBoxFromShell();
@@ -425,7 +425,7 @@ void GraphicalApplication::setHUDScale(const float v)
 #endif
 }
 
-#if defined(__EMSCRIPTEN__) && OTC_NATIVE_WINDOW
+#if defined(__EMSCRIPTEN__) && QTCLIENT_NATIVE_WINDOW
 void GraphicalApplication::requestShellLayout()
 {
     g_browserWindow.applyShellLayout();

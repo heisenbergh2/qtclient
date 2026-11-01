@@ -215,7 +215,7 @@ QString hirelingJobName(const int job)
 }
 
 /// CIP: TStorePurchasesQmlData (0x100d18490) over the 0xDA store summary
-/// (CIP reader 0x100eff150 case 8). OTClient drops the hireling outfits.
+/// (CIP reader 0x100eff150 case 8). qtclient drops the hireling outfits.
 class TStorePurchasesQmlData final : public cip::tibia::gamewindow::TStorePurchasesQmlData
 {
 public:
@@ -237,7 +237,7 @@ public:
         m_collectionTokens = static_cast<int>(argInt(args, 6));
         m_hasCharmExpansion = argBool(args, 7);
         m_hirelings = static_cast<int>(argInt(args, 8));
-        // OTClient hands the wire byte + 1000.
+        // qtclient hands the wire byte + 1000.
         if (const auto* jobs = arg<std::vector<uint16_t>>(args, 9))
             for (const uint16_t job : *jobs)
                 m_hirelingJobs.append(hirelingJobName(job - 1000));

@@ -1,6 +1,6 @@
 import QtQuick
 
-// Camera of a WorldMap view (house preview); OTClient draws no map inside QML.
+// Camera of a WorldMap view (house preview); qtclient draws no map inside QML.
 QtObject {
   property size size: Qt.size(0, 0)
   property real scaleFactor: 1.0

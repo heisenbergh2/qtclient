@@ -13,7 +13,7 @@
 
 namespace tibia::market {
 
-/// CIP: TMarketOffer (OTClient's MarketOffer).
+/// CIP: TMarketOffer (CIP's MarketOffer).
 struct TMarketOffer
 {
     uint32_t timestamp = 0;
@@ -47,7 +47,7 @@ struct TMarketItemDetails
     uint16_t typeId = 0;
     uint8_t tier = 0;
     bool hasTier = false;
-    /// OTClient's Otc::MarketItemDescription -> text.
+    /// CIP's Otc::MarketItemDescription -> text.
     std::unordered_map<int, QString> descriptions;
     TMarketStatistics buy;
     TMarketStatistics sell;

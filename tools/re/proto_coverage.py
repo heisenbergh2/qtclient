@@ -4,7 +4,7 @@
 Inputs:
   --msgmap   JSONL from ghidra/TibiaMessageMap.java (class -> vtable address points)
   --binary   the Tibia x86_64 Mach-O client the msgmap was produced from
-  --root     monorepo root (reads OTClient protocolcodes/parse/send, Crystal protocolgame + modules.xml)
+  --root     monorepo root (reads qtclient protocolcodes/parse/send, Crystal protocolgame + modules.xml)
 
 Every payload message is a protobuf-lite extension of GameserverMessage /
 GameclientMessage. Its static ExtensionIdentifier is {u64 number, T* default_instance}
@@ -150,7 +150,7 @@ def markdown(rows):
         crys = "Crystal sends" if d == "server" else "Crystal parses"
         otc = "OTC parses" if d == "server" else "OTC sends"
         out.append(f"### {title}\n")
-        out.append(f"| Opcode | Tibia message | OTClient enum | {otc} | {crys} |")
+        out.append(f"| Opcode | Tibia message | qtclient enum | {otc} | {crys} |")
         out.append("|---|---|---|---|---|")
         for r in rows:
             if r["dir"] != d:
