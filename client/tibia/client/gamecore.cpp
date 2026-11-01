@@ -56,7 +56,7 @@ void finishExit()
         QCoreApplication::quit();
 }
 
-/// modules/game_features/features.lua: the OTClient features of a protocol
+/// modules/game_features/features.lua: the qtclient features of a protocol
 /// version, plus the Crystal OTCR features the server expects before 0x43.
 void enableFeatures(const int version)
 {

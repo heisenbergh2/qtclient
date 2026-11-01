@@ -39,7 +39,7 @@ struct ModUrls {
     std::string createAccountPath;
     std::string assetBase;
     std::string paymentsBase;
-    /// OTC_URL_* page overrides (path or absolute URL).
+    /// QTCLIENT_URL_* page overrides (path or absolute URL).
     std::unordered_map<std::string, std::string> pages;
     int priority = 100;
     bool empty() const

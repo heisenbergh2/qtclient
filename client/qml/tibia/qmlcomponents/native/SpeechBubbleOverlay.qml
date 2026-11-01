@@ -1,5 +1,5 @@
 import QtQuick
 
-// Speech bubbles over the map; OTClient draws these with the map.
+// Speech bubbles over the map; qtclient draws these with the map.
 Item {
 }

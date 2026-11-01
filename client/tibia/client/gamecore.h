@@ -13,8 +13,8 @@ class LuaObject;
 
 namespace tibia::client {
 
-/// OTClient's engine (gamecore: protocol, game model, assets, net) hosted on the
-/// Qt GUI thread, the way CIP runs its logic: no OTClient window, graphics or
+/// CIP's engine (gamecore: protocol, game model, assets, net) hosted on the
+/// Qt GUI thread, the way CIP runs its logic: no qtclient window, graphics or
 /// Lua. The app polls it; engine hooks arrive through GameEvents.
 namespace gamecore {
 
@@ -40,7 +40,7 @@ void advanceTo(qint64 micros);
 /// Back to the real time after advanceTo.
 void resumeRealTime();
 
-/// Sets the client and protocol version, the OTClient features of that version
+/// Sets the client and protocol version, the qtclient features of that version
 /// (modules/game_features) and the server RSA key.
 void setClientVersion(int version);
 

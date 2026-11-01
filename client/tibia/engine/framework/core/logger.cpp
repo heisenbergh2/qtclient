@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2026 OTClient <https://github.com/edubart/otclient>
+ * Copyright (c) 2024-2026 qtclient contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -68,7 +68,7 @@ void Logger::log(Fw::LogLevel level, const std::string_view message)
     outmsg.append(message);
 
 #ifdef ANDROID
-    __android_log_print(ANDROID_LOG_INFO, "OTClientMobile", "%s", outmsg.c_str());
+    __android_log_print(ANDROID_LOG_INFO, "QtClientMobile", "%s", outmsg.c_str());
 #endif // ANDROID
     std::cerr << outmsg << std::endl;
 

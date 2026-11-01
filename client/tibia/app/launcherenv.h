@@ -19,7 +19,7 @@ struct LauncherEnv
     /// Client revision sent to the portal: the launcher's QTCLIENT_CLIENT_REVISION, else the
     /// release build's QTCLIENT_REVISION; empty for dev builds.
     QString revision;
-    /// AAC origin (from OTC_LOGIN_* / mod urls.loginBase / release_env / www.tibia.com).
+    /// AAC origin (from QTCLIENT_LOGIN_* / mod urls.loginBase / release_env / www.tibia.com).
     QUrl loginBase;
     /// loginWebService path (CIP fallback: /clientservices/loginservice.php).
     QString loginPath;
@@ -29,9 +29,9 @@ struct LauncherEnv
     QString createAccountPath;
     /// Public asset origin (QTCLIENT_ASSET_BASE), defaulting to https://static.tibia.com.
     QUrl assetBase;
-    /// Coin webshop origin (QTCLIENT_PAYMENTS_URL / OTC_PAYMENTS_BASE); empty = compose on loginBase.
+    /// Coin webshop origin (QTCLIENT_PAYMENTS_URL / QTCLIENT_PAYMENTS_BASE); empty = compose on loginBase.
     QUrl paymentsBase;
-    /// Optional full URL or path overrides keyed by OTC_URL_* env names (e.g. OTC_URL_GET_COINS).
+    /// Optional full URL or path overrides keyed by QTCLIENT_URL_* env names (e.g. QTCLIENT_URL_GET_COINS).
     QHash<QString, QString> urlOverrides;
 
     /// Bring the launcher window forward. Writes QTCLIENT_SHOW_FILE when the

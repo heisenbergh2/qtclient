@@ -1,8 +1,8 @@
-otclient_add_gtest(client_heightstamp_tests
+qtclient_add_gtest(client_heightstamp_tests
     heightstamp_test.cpp
 )
 
-otclient_add_gtest(client_weather_tests
+qtclient_add_gtest(client_weather_tests
     weather_test.cpp
 )
 target_include_directories(client_weather_tests PRIVATE

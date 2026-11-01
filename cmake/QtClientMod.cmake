@@ -132,7 +132,7 @@ function(qtclient_add_mod MOD_ID)
     endif()
   elseif(QTCLIENT_MOD_INTERNAL)
     # Out-of-tree pack against client-sdk or qtclient source + build (cip_gen, engine).
-    # Matches otc_deps INTERFACE includes + FRAMEWORK_* defs from client/CMakeLists.txt.
+    # Matches qtclient_deps INTERFACE includes + FRAMEWORK_* defs from client/CMakeLists.txt.
     target_compile_definitions(${_target} PRIVATE
       QTCLIENT_MOD_INTERNAL=1
       QT_NO_KEYWORDS
@@ -140,8 +140,8 @@ function(qtclient_add_mod MOD_ID)
       FRAMEWORK_NET
       FRAMEWORK_PROTOBUF
       FRAMEWORK_XML
-      OTC_LUA=0
-      OTC_NATIVE_WINDOW=0
+      QTCLIENT_LUA=0
+      QTCLIENT_NATIVE_WINDOW=0
       TIBIA_WITH_GAMECORE
       TIBIA_NO_OPENSSL)
     target_include_directories(${_target} PRIVATE

@@ -80,10 +80,11 @@ inline QShader loadStockShader(const char* name)
     return isolateGlslEs300(QShader::fromSerialized(file.readAll()));
 }
 
-/// Pack-owned raycast/weather shaders (PREFIX /idleot/shaders on the IdleOT MODULE).
-inline QShader loadIdleotShader(const char* name)
+/// Pack-owned shaders (`:/<module>/shaders/<name>.qsb`).
+inline QShader loadPackShader(const char* qrcModule, const char* name)
 {
-    QFile file(QStringLiteral(":/idleot/shaders/%1.qsb").arg(QLatin1String(name)));
+    QFile file(QStringLiteral(":/%1/shaders/%2.qsb")
+                   .arg(QLatin1String(qrcModule), QLatin1String(name)));
     if (!file.open(QIODevice::ReadOnly))
         return {};
     return isolateGlslEs300(QShader::fromSerialized(file.readAll()));
@@ -103,10 +104,11 @@ inline QShader loadStockShader(const char* name)
     return QShader::fromSerialized(file.readAll());
 }
 
-/// Pack-owned raycast/weather shaders (PREFIX /idleot/shaders on the IdleOT MODULE).
-inline QShader loadIdleotShader(const char* name)
+/// Pack-owned shaders (`:/<module>/shaders/<name>.qsb`).
+inline QShader loadPackShader(const char* qrcModule, const char* name)
 {
-    QFile file(QStringLiteral(":/idleot/shaders/%1.qsb").arg(QLatin1String(name)));
+    QFile file(QStringLiteral(":/%1/shaders/%2.qsb")
+                   .arg(QLatin1String(qrcModule), QLatin1String(name)));
     if (!file.open(QIODevice::ReadOnly))
         return {};
     return QShader::fromSerialized(file.readAll());

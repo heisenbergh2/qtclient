@@ -242,9 +242,9 @@ LauncherEnv LauncherEnv::load(const QString& workDir)
     e.fromLauncher = !qEnvironmentVariableIsEmpty("QTCLIENT_LAUNCHER");
 
     const QString modLoginBase = modUrls ? fromStd(modUrls->loginBase) : QString();
-    QString scheme = qEnvironmentVariable("OTC_LOGIN_SCHEME");
-    QString host = qEnvironmentVariable("OTC_LOGIN_HOST");
-    QString portStr = qEnvironmentVariable("OTC_LOGIN_PORT");
+    QString scheme = qEnvironmentVariable("QTCLIENT_LOGIN_SCHEME");
+    QString host = qEnvironmentVariable("QTCLIENT_LOGIN_HOST");
+    QString portStr = qEnvironmentVariable("QTCLIENT_LOGIN_PORT");
     if (scheme.isEmpty() && host.isEmpty() && !modLoginBase.isEmpty()) {
         const QUrl base(modLoginBase, QUrl::TolerantMode);
         if (base.isValid() && !base.host().isEmpty()) {
@@ -255,11 +255,11 @@ LauncherEnv LauncherEnv::load(const QString& workDir)
         }
     }
     if (scheme.isEmpty())
-        scheme = release.value(QStringLiteral("OTC_LOGIN_SCHEME"), QStringLiteral("https"));
+        scheme = release.value(QStringLiteral("QTCLIENT_LOGIN_SCHEME"), QStringLiteral("https"));
     if (host.isEmpty())
-        host = release.value(QStringLiteral("OTC_LOGIN_HOST"), QStringLiteral("www.tibia.com"));
+        host = release.value(QStringLiteral("QTCLIENT_LOGIN_HOST"), QStringLiteral("www.tibia.com"));
     if (portStr.isEmpty())
-        portStr = release.value(QStringLiteral("OTC_LOGIN_PORT"));
+        portStr = release.value(QStringLiteral("QTCLIENT_LOGIN_PORT"));
 
     e.loginBase.setScheme(scheme);
     e.loginBase.setHost(host);
@@ -269,15 +269,15 @@ LauncherEnv LauncherEnv::load(const QString& workDir)
         e.loginBase.setPort(port);
 
     e.loginPath = ensureLeadingSlash(pick(
-        "OTC_LOGIN_PATH",
+        "QTCLIENT_LOGIN_PATH",
         modUrls ? fromStd(modUrls->loginPath) : QString(),
         QStringLiteral("/clientservices/loginservice.php")));
     e.clientServicesPath = ensureLeadingSlash(pick(
-        "OTC_CLIENTSERVICES_PATH",
+        "QTCLIENT_CLIENTSERVICES_PATH",
         modUrls ? fromStd(modUrls->clientServicesPath) : QString(),
         QStringLiteral("/clientservices/clientservices.php")));
     e.createAccountPath = ensureLeadingSlash(pick(
-        "OTC_CREATE_ACCOUNT_PATH",
+        "QTCLIENT_CREATE_ACCOUNT_PATH",
         modUrls ? fromStd(modUrls->createAccountPath) : QString(),
         QStringLiteral("/clientservices/accountcreationclientservices.php")));
 
@@ -298,22 +298,22 @@ LauncherEnv LauncherEnv::load(const QString& workDir)
         modUrls ? fromStd(modUrls->paymentsBase) : QString(),
         QString());
     if (payments.isEmpty())
-        payments = qEnvironmentVariable("OTC_PAYMENTS_BASE");
+        payments = qEnvironmentVariable("QTCLIENT_PAYMENTS_BASE");
     if (payments.isEmpty())
-        payments = release.value(QStringLiteral("OTC_PAYMENTS_BASE"));
+        payments = release.value(QStringLiteral("QTCLIENT_PAYMENTS_BASE"));
     while (payments.endsWith(u'/'))
         payments.chop(1);
     if (!payments.isEmpty())
         e.paymentsBase = QUrl(payments);
 
     static const char* const kUrlKeys[] = {
-        "OTC_URL_TIBIA_PAGE",       "OTC_URL_CIPSOFT",
-        "OTC_URL_MANUAL",           "OTC_URL_FAQ",
-        "OTC_URL_GET_PREMIUM",      "OTC_URL_PREMIUM_FEATURES",
-        "OTC_URL_GET_COINS",        "OTC_URL_CREATE_ACCOUNT",
-        "OTC_URL_ACCESS_ACCOUNT",   "OTC_URL_LOST_ACCOUNT",
-        "OTC_URL_SURVEY",           "OTC_URL_NEWS_ARCHIVE",
-        "OTC_URL_TWITCH",           "OTC_URL_YOUTUBE",
+        "QTCLIENT_URL_TIBIA_PAGE",       "QTCLIENT_URL_CIPSOFT",
+        "QTCLIENT_URL_MANUAL",           "QTCLIENT_URL_FAQ",
+        "QTCLIENT_URL_GET_PREMIUM",      "QTCLIENT_URL_PREMIUM_FEATURES",
+        "QTCLIENT_URL_GET_COINS",        "QTCLIENT_URL_CREATE_ACCOUNT",
+        "QTCLIENT_URL_ACCESS_ACCOUNT",   "QTCLIENT_URL_LOST_ACCOUNT",
+        "QTCLIENT_URL_SURVEY",           "QTCLIENT_URL_NEWS_ARCHIVE",
+        "QTCLIENT_URL_TWITCH",           "QTCLIENT_URL_YOUTUBE",
     };
     for (const char* key : kUrlKeys) {
         QString v = qEnvironmentVariable(key);

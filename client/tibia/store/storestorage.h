@@ -14,7 +14,7 @@
 namespace tibia::store {
 
 /// One price of an offer (CIP: the 0x40-byte quantity configuration of
-/// TStoreOffer; OTClient's SubOffer).
+/// TStoreOffer; CIP's SubOffer).
 struct TStoreQuantity
 {
     uint32_t offerId = 0;
@@ -30,8 +30,7 @@ struct TStoreQuantity
     uint32_t basePrice = 0;
 };
 
-/// What an offer shows (CIP: TStoreVisualisation; OTClient's
-/// GameStoreInfoType_t, numbered like EQmlVisualisationType).
+/// What an offer shows (CIP: TStoreVisualisation; CIP's /// GameStoreInfoType_t, numbered like EQmlVisualisationType).
 struct TStoreVisual
 {
     enum Type : uint8_t { ImageIdentifier = 0, Mount = 1, Outfit = 2, Object = 3, BothGenderOutfits = 4 };
@@ -78,7 +77,7 @@ struct TStoreCategoryData
     std::vector<TStoreCategoryData> subcategories;
 };
 
-/// One line of the transaction history (OTClient's onParseStoreGetHistory
+/// One line of the transaction history (CIP's onParseStoreGetHistory
 /// tuple).
 struct TStoreHistoryEntry
 {
@@ -94,7 +93,7 @@ struct TStoreHistoryEntry
 };
 
 /// The store's data (CIP: TStoreStorage, ctor 0x100ff9660, metacall
-/// 0x10086fa20) fed by OTClient's store events, and the store requests to the
+/// 0x10086fa20) fed by CIP's store events, and the store requests to the
 /// server.
 class TStoreStorage final : public cip::tibia::store::TStoreStorage
 {
@@ -132,7 +131,7 @@ public:
     void requestCategory(const QString& name);
     void requestOffer(uint32_t offerId);
     void requestSearch(const QString& text);
-    /// Request type 1 (detail 1 the boosts, else premium time). OTClient only
+    /// Request type 1 (detail 1 the boosts, else premium time). qtclient only
     /// sends the boosts variant, so premium asks for the server's premium
     /// category by name (Crystal: "VIP Shop" with its VIP system, else
     /// "Premium Time").

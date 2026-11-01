@@ -12,9 +12,9 @@
     "clientServicesPath": "/login.php",
     "createAccountPath": "/login.php",
     "pages": {
-      "OTC_URL_CREATE_ACCOUNT": "/?subtopic=createaccount",
-      "OTC_URL_ACCESS_ACCOUNT": "/?subtopic=accountmanagement",
-      "OTC_URL_LOST_ACCOUNT": "/?subtopic=lostaccount"
+      "QTCLIENT_URL_CREATE_ACCOUNT": "/?subtopic=createaccount",
+      "QTCLIENT_URL_ACCESS_ACCOUNT": "/?subtopic=accountmanagement",
+      "QTCLIENT_URL_LOST_ACCOUNT": "/?subtopic=lostaccount"
     }
   }
 }

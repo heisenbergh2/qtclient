@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2026 OTClient <https://github.com/edubart/otclient>
+ * Copyright (c) 2024-2026 qtclient contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -77,7 +77,7 @@ namespace Proto
         // all in game opcodes must be greater than 50
         GameServerFirstGameOpcode = 50,
 
-        // otclient ONLY
+        // qtclient ONLY
         GameServerExtendedOpcode = 50,
 
         // NOTE: add any custom opcodes in this range
@@ -283,7 +283,7 @@ namespace Proto
         // all in game opcodes must be equal or greater than 50
         ClientFirstGameOpcode = 50,
 
-        // otclient ONLY
+        // qtclient ONLY
         ClientExtendedOpcode = 50,
         ClientChangeMapAwareRange = 51,
 

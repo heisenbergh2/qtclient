@@ -3,18 +3,18 @@
 file(GLOB LEGACY_QML RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/*.qml ${CMAKE_CURRENT_SOURCE_DIR}/*.js)
 file(GLOB LEGACY_CPP CONFIGURE_DEPENDS
-    ${OTC_QML_SOURCE_DIR}/framework/qml/legacycontrols/*.cpp ${OTC_QML_SOURCE_DIR}/framework/qml/legacycontrols/*.h)
+    ${QTCLIENT_QML_SOURCE_DIR}/framework/qml/legacycontrols/*.cpp ${QTCLIENT_QML_SOURCE_DIR}/framework/qml/legacycontrols/*.h)
 set_source_files_properties(TextSingleton.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
-qt_add_qml_module(otclient_qml_legacy
+qt_add_qml_module(qtclient_qml_legacy
     URI QtQuick.LegacyControls
     VERSION 1.0
     STATIC
     NO_LINT
-    OUTPUT_DIRECTORY ${OTC_QML_OUTPUT_DIR}/QtQuick/LegacyControls
+    OUTPUT_DIRECTORY ${QTCLIENT_QML_OUTPUT_DIR}/QtQuick/LegacyControls
     QML_FILES ${LEGACY_QML}
     SOURCES ${LEGACY_CPP}
     IMPORTS QtQuick QtQuick.Layouts QtQuick.Window
 )
-target_include_directories(otclient_qml_legacy PRIVATE ${OTC_QML_SOURCE_DIR}/framework/qml/legacycontrols)
-target_link_libraries(otclient_qml_legacy PRIVATE Qt6::Quick Qt6::Qml)
+target_include_directories(qtclient_qml_legacy PRIVATE ${QTCLIENT_QML_SOURCE_DIR}/framework/qml/legacycontrols)
+target_link_libraries(qtclient_qml_legacy PRIVATE Qt6::Quick Qt6::Qml)

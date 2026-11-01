@@ -1,4 +1,4 @@
-qtclient (CIP-compatible Qt/QML client) — MIT License
+qtclient (CipSoft-compatible Qt/QML client) — MIT License
 
 Copyright (c) 2024-2026 qtclient contributors
 
@@ -22,14 +22,10 @@ THE SOFTWARE.
 
 ---------------------------------------------------------------------------
 
-This MIT grant covers the qtclient source tree as published (C++/QML glue,
-controllers, engine ports, build scripts, and documentation authored here).
+This MIT grant covers the qtclient source tree as published (C++/QML host,
+controllers, engine, launcher, build scripts, and documentation).
 
 It does **not** grant rights to CipSoft GmbH materials. The official Tibia
 client, its QML/contract sync tree (`client/upstream/`, `launcher/upstream/`),
 graphics, sounds, and related assets remain CipSoft property. Obtain them only
 from a licensed Tibia install (see NOTICE and docs/open-source.md).
-
-Portions derived from OTClient remain under the MIT License:
-
-Copyright (c) 2010-2020 OTClient <https://github.com/edubart/otclient>

@@ -23,7 +23,7 @@ runner:
     level: warning
 
   luac:
-    # Bytecode-compile only when legacy OTClient Lua trees exist. Empty find
+    # Bytecode-compile only when legacy qtclient Lua trees exist. Empty find
     # + reviewdog -fail-level=error used to fail Soft Fast Checks on
     # tibia-only checkouts (no data/modules).
     cmd: >-

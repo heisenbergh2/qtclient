@@ -34,7 +34,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-# Monorepo umbrella copy uses repo root; in-tree otclient copy uses otclient root.
+# Monorepo umbrella copy uses repo root; in-tree qtclient copy uses qtclient root.
 _OTC = ROOT / "apps/qtclient" if (ROOT / "apps/qtclient" / "client/tibia").is_dir() else ROOT
 DATA = _OTC / "data"
 HINTS = DATA / "hints.json"

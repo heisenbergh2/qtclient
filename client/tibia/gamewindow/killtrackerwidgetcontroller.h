@@ -48,7 +48,7 @@ private:
 /// TKillTrackerWidgetController, ctor 0x100c00860, init 0x100c00e20): one
 /// render info per prey slot, built once from the storage, plus the bounty and
 /// weekly task lists. Not ported: the task lists stay empty (no task board
-/// data in OTClient).
+/// data in qtclient).
 class TKillTrackerWidgetController final : public TSidebarWidgetController<cip::tibia::gamewindow::TKillTrackerWidgetController>
 {
     Q_OBJECT

@@ -602,7 +602,7 @@ QString TProgressWidgetController::baseXpPerHourString() const { return xpString
 
 namespace {
 
-/// OTClient's experience formula (the server's Player::getExpForLevel).
+/// CIP's experience formula (the server's Player::getExpForLevel).
 qint64 experienceForLevel(const qint64 level)
 {
     const qint64 l = level - 1;

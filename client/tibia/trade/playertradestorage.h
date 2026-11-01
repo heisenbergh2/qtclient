@@ -13,7 +13,7 @@
 namespace tibia::trade {
 
 /// The trade between two players (CIP: TPlayerTradeStorage, ctor
-/// 0x101040270, vtable 0x1026427d8) fed by OTClient's OwnTrade /
+/// 0x101040270, vtable 0x1026427d8) fed by CIP's OwnTrade /
 /// CounterTrade / CloseTrade (CIP's TPlayerTradeProtocolMessageHandler,
 /// ctor 0x10103f5e0, vtable 0x102642718).
 class TPlayerTradeStorage final : public cip::tibia::trade::TPlayerTradeStorage

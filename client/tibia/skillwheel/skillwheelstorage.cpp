@@ -90,7 +90,7 @@ void TSkillWheelStorage::clear()
 
 /// CIP protocol handler 0x100fa0290: the player id, view and change state,
 /// vocation, points, slices, consumed scrolls, socketed and revealed gems and
-/// the mod grades (OTClient parseOpenWheelWindow).
+/// the mod grades (qtclient parseOpenWheelWindow).
 void TSkillWheelStorage::onDestinyWheel(const Args& args)
 {
     const bool canView = argInt(args, 1) != 0;

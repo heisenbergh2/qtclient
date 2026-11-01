@@ -62,7 +62,7 @@ Q_SIGNALS:
     void vipsChanged();
     void groupsChanged();
     /// The server changed a known VIP's state (CIP TVipStorage's state signal,
-    /// handled by 0x100bea840); OTClient's list already holds `state`.
+    /// handled by 0x100bea840); CIP's list already holds `state`.
     void vipStateChanged(uint32_t id, int previousState, int state);
 
 private:

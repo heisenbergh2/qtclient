@@ -1,5 +1,5 @@
 import QtQuick
 
-// Damage/heal numbers over the map; OTClient draws these with the map.
+// Damage/heal numbers over the map; qtclient draws these with the map.
 Item {
 }

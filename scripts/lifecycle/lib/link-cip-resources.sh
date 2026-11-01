@@ -4,15 +4,15 @@
 set -euo pipefail
 
 BIN=${1:?client binary}
-OTC_DATA=${2:-}
-if [[ -z "$OTC_DATA" ]]; then
+QTCLIENT_DATA=${2:-}
+if [[ -z "$QTCLIENT_DATA" ]]; then
   HERE="$(cd "$(dirname "$0")" && pwd)"
-  OTC_DATA="$(cd "$HERE/../../../data" && pwd)"
+  QTCLIENT_DATA="$(cd "$HERE/../../../data" && pwd)"
 fi
-OTC_DATA="$(cd "$OTC_DATA" && pwd)"
+QTCLIENT_DATA="$(cd "$QTCLIENT_DATA" && pwd)"
 
-if [[ ! -f "$OTC_DATA/assets/catalog-content.json" ]]; then
-  echo "[tibia] skip Resources link — no catalog at $OTC_DATA/assets (run make extract)"
+if [[ ! -f "$QTCLIENT_DATA/assets/catalog-content.json" ]]; then
+  echo "[tibia] skip Resources link — no catalog at $QTCLIENT_DATA/assets (run make extract)"
   exit 0
 fi
 
@@ -26,7 +26,7 @@ fi
 
 if [[ -L "$RES" ]]; then
   current="$(readlink "$RES" || true)"
-  if [[ "$current" == "$OTC_DATA" ]]; then
+  if [[ "$current" == "$QTCLIENT_DATA" ]]; then
     exit 0
   fi
   rm -f "$RES"
@@ -42,5 +42,5 @@ elif [[ -e "$RES" ]]; then
   exit 0
 fi
 
-ln -s "$OTC_DATA" "$RES"
-echo "[tibia] Resources → $OTC_DATA ($RES)"
+ln -s "$QTCLIENT_DATA" "$RES"
+echo "[tibia] Resources → $QTCLIENT_DATA ($RES)"

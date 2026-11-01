@@ -21,7 +21,7 @@ namespace tibia::game {
 /// CIP-shaped session that replays a recorded game world (CIP: TSessiondumpGameSession).
 ///
 /// Supports:
-/// - OTClient text hex dumps (`--replay`: `< millis hex>` / `> millis hex`), converted
+/// - qtclient text hex dumps (`--replay`: `< millis hex>` / `> millis hex`), converted
 ///   into the same decoded messages the live socket parses
 /// - CIP `dmpd` containers (magic `dmpd`): mappable opcodes become classic packets
 ///   on that same parser; unknown protobuf types are skipped with a log

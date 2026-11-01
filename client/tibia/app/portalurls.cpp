@@ -63,31 +63,31 @@ QUrl PortalUrls::urlFor(const LauncherEnv& env, const A action)
 
     switch (action) {
     case A::OPEN_URL_TIBIA_PAGE: {
-        if (const QUrl o = tryOverride("OTC_URL_TIBIA_PAGE"); !o.isEmpty())
+        if (const QUrl o = tryOverride("QTCLIENT_URL_TIBIA_PAGE"); !o.isEmpty())
             return o;
         return withPath(env.loginBase, QStringLiteral("/"));
     }
     case A::OPEN_URL_CIPSOFT: {
-        if (const QUrl o = tryOverride("OTC_URL_CIPSOFT"); !o.isEmpty())
+        if (const QUrl o = tryOverride("QTCLIENT_URL_CIPSOFT"); !o.isEmpty())
             return o;
         return withPath(env.loginBase, QStringLiteral("/"));
     }
     case A::OPEN_URL_MANUAL: {
-        if (const QUrl o = tryOverride("OTC_URL_MANUAL"); !o.isEmpty())
+        if (const QUrl o = tryOverride("QTCLIENT_URL_MANUAL"); !o.isEmpty())
             return o;
         QUrlQuery q;
         q.addQueryItem(QStringLiteral("subtopic"), QStringLiteral("manual"));
         return withPathAndQuery(env.loginBase, QStringLiteral("/gameguides"), q);
     }
     case A::OPEN_URL_FAQ: {
-        if (const QUrl o = tryOverride("OTC_URL_FAQ"); !o.isEmpty())
+        if (const QUrl o = tryOverride("QTCLIENT_URL_FAQ"); !o.isEmpty())
             return o;
         QUrlQuery q;
         q.addQueryItem(QStringLiteral("subtopic"), QStringLiteral("faq"));
         return withPathAndQuery(env.loginBase, QStringLiteral("/support"), q);
     }
     case A::OPEN_URL_GET_PREMIUM: {
-        if (const QUrl o = tryOverride("OTC_URL_GET_PREMIUM"); !o.isEmpty())
+        if (const QUrl o = tryOverride("QTCLIENT_URL_GET_PREMIUM"); !o.isEmpty())
             return o;
         if (!env.paymentsBase.isEmpty())
             return env.paymentsBase;
@@ -98,14 +98,14 @@ QUrl PortalUrls::urlFor(const LauncherEnv& env, const A action)
         return withPathAndQuery(env.loginBase, QStringLiteral("/account"), q);
     }
     case A::OPEN_URL_PREMIUM_FEATURES: {
-        if (const QUrl o = tryOverride("OTC_URL_PREMIUM_FEATURES"); !o.isEmpty())
+        if (const QUrl o = tryOverride("QTCLIENT_URL_PREMIUM_FEATURES"); !o.isEmpty())
             return o;
         QUrlQuery q;
         q.addQueryItem(QStringLiteral("subtopic"), QStringLiteral("premiumfeatures"));
         return withPathAndQuery(env.loginBase, QStringLiteral("/abouttibia"), q);
     }
     case A::OPEN_URL_GET_COINS: {
-        if (const QUrl o = tryOverride("OTC_URL_GET_COINS"); !o.isEmpty())
+        if (const QUrl o = tryOverride("QTCLIENT_URL_GET_COINS"); !o.isEmpty())
             return o;
         if (!env.paymentsBase.isEmpty())
             return env.paymentsBase;
@@ -116,45 +116,45 @@ QUrl PortalUrls::urlFor(const LauncherEnv& env, const A action)
         return withPathAndQuery(env.loginBase, QStringLiteral("/account"), q);
     }
     case A::OPEN_URL_CREATE_ACCOUNT: {
-        if (const QUrl o = tryOverride("OTC_URL_CREATE_ACCOUNT"); !o.isEmpty())
+        if (const QUrl o = tryOverride("QTCLIENT_URL_CREATE_ACCOUNT"); !o.isEmpty())
             return o;
         QUrlQuery q;
         q.addQueryItem(QStringLiteral("subtopic"), QStringLiteral("createaccount"));
         return withPathAndQuery(env.loginBase, QStringLiteral("/account"), q);
     }
     case A::OPEN_URL_ACCESS_ACCOUNT: {
-        if (const QUrl o = tryOverride("OTC_URL_ACCESS_ACCOUNT"); !o.isEmpty())
+        if (const QUrl o = tryOverride("QTCLIENT_URL_ACCESS_ACCOUNT"); !o.isEmpty())
             return o;
         QUrlQuery q;
         q.addQueryItem(QStringLiteral("subtopic"), QStringLiteral("accountmanagement"));
         return withPathAndQuery(env.loginBase, QStringLiteral("/account"), q);
     }
     case A::OPEN_URL_LOST_ACCOUNT: {
-        if (const QUrl o = tryOverride("OTC_URL_LOST_ACCOUNT"); !o.isEmpty())
+        if (const QUrl o = tryOverride("QTCLIENT_URL_LOST_ACCOUNT"); !o.isEmpty())
             return o;
         QUrlQuery q;
         q.addQueryItem(QStringLiteral("subtopic"), QStringLiteral("lostaccount"));
         return withPathAndQuery(env.loginBase, QStringLiteral("/account"), q);
     }
     case A::OPEN_URL_SURVEY: {
-        if (const QUrl o = tryOverride("OTC_URL_SURVEY"); !o.isEmpty())
+        if (const QUrl o = tryOverride("QTCLIENT_URL_SURVEY"); !o.isEmpty())
             return o;
         return withPath(env.loginBase, QStringLiteral("/survey"));
     }
     case A::OPEN_URL_TWITCH_TIBIA: {
-        if (const QUrl o = tryOverride("OTC_URL_TWITCH"); !o.isEmpty())
+        if (const QUrl o = tryOverride("QTCLIENT_URL_TWITCH"); !o.isEmpty())
             return o;
         return withPath(env.loginBase, QStringLiteral("/"));
     }
     case A::OPEN_URL_YOUTUBE_TIBIA: {
-        if (const QUrl o = tryOverride("OTC_URL_YOUTUBE"); !o.isEmpty())
+        if (const QUrl o = tryOverride("QTCLIENT_URL_YOUTUBE"); !o.isEmpty())
             return o;
         return withPath(env.loginBase, QStringLiteral("/"));
     }
     case A::OPEN_NEWS_DIALOG:
     case A::OPEN_NEWS_CATEGORY:
     case A::REFRESH_COMPENDIUM_NEWS: {
-        if (const QUrl o = tryOverride("OTC_URL_NEWS_ARCHIVE"); !o.isEmpty())
+        if (const QUrl o = tryOverride("QTCLIENT_URL_NEWS_ARCHIVE"); !o.isEmpty())
             return o;
         return withPath(env.loginBase, QStringLiteral("/news/archive"));
     }

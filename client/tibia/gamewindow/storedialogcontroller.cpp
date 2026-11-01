@@ -448,7 +448,7 @@ void TStoreDialogController::tryOutfitForCurrentOffer()
         return;
     int typeId = visual.typeId;
     if (visual.type == store::TStoreVisual::BothGenderOutfits) {
-        // CIP picks by the player's sex, which OTClient does not track.
+        // CIP picks by the player's sex, which qtclient does not track.
         const LocalPlayerPtr& player = g_game.getLocalPlayer();
         const bool female = player && player->getOutfit().getId() == static_cast<uint16_t>(visual.femaleTypeId);
         typeId = female ? visual.femaleTypeId : visual.maleTypeId;

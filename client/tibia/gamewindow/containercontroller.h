@@ -19,9 +19,9 @@ class TSidebarOptions;
 namespace tibia::gamewindow {
 
 /// One open container's sidebar widget, container.qml (CIP:
-/// TContainerController, vtable 0x102637588). OTClient's protocol carries
+/// TContainerController, vtable 0x102637588). CIP's protocol carries
 /// no depot search, manual sort, view filter or "more pages" flags, so their
-/// buttons stay hidden (OTClient protocol gaps).
+/// buttons stay hidden (qtclient protocol gaps).
 class TContainerController final : public TSidebarWidgetController<cip::tibia::gamewindow::TContainerController>
 {
     Q_OBJECT

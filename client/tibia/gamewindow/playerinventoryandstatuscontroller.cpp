@@ -248,7 +248,7 @@ void TPlayerInventoryAndStatusController::applyPlayerTacticsAndInventorySizeFrom
         m_chaseEnabled = m_options->sidebarPanelsOptions().chaseModeEnabled;
     Q_EMIT inventoryMinimizedChanged();
     Q_EMIT chaseModeChanged();
-    // CIP's login carries the tactics; OTClient's server keeps its own until told.
+    // CIP's login carries the tactics; CIP's server keeps its own until told.
     if (tibia::world::session().isOnline() && m_chaseEnabled != (tibia::world::session().getChaseMode() == Otc::ChaseOpponent))
         publishTactics();
 }

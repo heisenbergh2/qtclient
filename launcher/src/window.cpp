@@ -1507,7 +1507,7 @@ void LauncherWindow::spawn(const QString& executable, const QString& workDir, co
     env.insert(QStringLiteral("QTCLIENT_SHOW_FILE"), showFile);
     env.insert(QStringLiteral("QTCLIENT_LAUNCHER_BIN"), QCoreApplication::applicationFilePath());
     // Tip CDN for assets; login URLs come from the client's mod.json `urls`
-    // (mods/myaac or mods/idleot) — do not inject OTC_LOGIN_* here.
+    // (mods/myaac or mods/idleot) — do not inject QTCLIENT_LOGIN_* here.
     env.insert(QStringLiteral("QTCLIENT_ASSET_BASE"), m_client->cdnBase());
 
     auto* process = new QProcess(this);

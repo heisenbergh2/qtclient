@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2026 OTClient <https://github.com/edubart/otclient>
+ * Copyright (c) 2024-2026 qtclient contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -110,7 +110,7 @@ void ConfigManager::init() {
     m_settings = std::make_shared<Config>();
 
     // Workdir is mounted at PHYSFS root (gamecore discoverWorkDir); use an
-    // absolute virtual path so resolvePath does not warn under OTC_LUA=0.
+    // absolute virtual path so resolvePath does not warn under QTCLIENT_LUA=0.
     loadPublicConfig("/config.ini");
     loadRenderBackendOverride();
 }

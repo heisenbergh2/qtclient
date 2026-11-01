@@ -84,7 +84,7 @@ void TAboutDialogController::requestShowLicensesDialog()
     // includes BattlEye EULA — out of scope). Product lists our linked libs.
     m_licensesMessage->setButtons({ new TMessageDialogButton(qtTrId("ok"), TMessageDialogController::Button::OK, QKeySequence(QStringLiteral("Return"))) });
     m_licensesMessage->showMessage(qtTrId("aboutdialog_licenses"),
-                                   QStringLiteral("Qt %1 (LGPLv3), OTClient (MIT), zlib, miniaudio (public domain), protobuf (BSD)")
+                                   QStringLiteral("Qt %1 (LGPLv3), zlib, miniaudio (public domain), protobuf (BSD)")
                                        .arg(QLatin1StringView(qVersion())));
 }
 

@@ -3,7 +3,7 @@ import QtQuick
 import qmlcomponents
 
 // Stands in for the `sidebarLowerPane` of sidebar.qml around one widget. The
-// window manager either keeps it over a slot in an OTClient side panel, which
+// window manager either keeps it over a slot in an qtclient side panel, which
 // lays the widgets out, or lets it float over the map. Requests for space are
 // answered from the free height and never shrink or close other widgets.
 Item {

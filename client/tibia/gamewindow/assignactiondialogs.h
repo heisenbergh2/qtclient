@@ -58,7 +58,7 @@ protected:
 
 /// AssignSpellActionDialog.qml (CIP: TAssignSpellActionDialogController,
 /// v37 0x100c928b0). The cast type is kept in the setting; casting only uses
-/// None (OTClient has no crosshair or cursor-cast spells).
+/// None (qtclient has no crosshair or cursor-cast spells).
 class TAssignSpellActionDialogController final : public TAssignActionDialog<cip::tibia::gamewindow::TAssignSpellActionDialogController>
 {
     Q_OBJECT
@@ -108,7 +108,7 @@ public Q_SLOTS:
 };
 
 /// AssignPassiveAbilityActionDialog.qml (CIP:
-/// TAssignPassiveAbilityActionDialogController, v37 0x100c93120). OTClient
+/// TAssignPassiveAbilityActionDialogController, v37 0x100c93120). qtclient
 /// knows no passive abilities: the list is empty.
 class TAssignPassiveAbilityActionDialogController final
     : public TAssignActionDialog<cip::tibia::gamewindow::TAssignPassiveAbilityActionDialogController>

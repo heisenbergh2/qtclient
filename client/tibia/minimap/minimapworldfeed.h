@@ -10,7 +10,7 @@ class TWorldmapProtocolMessageHandler;
 
 namespace tibia::minimap {
 
-/// The engine's map as the minimap's world: field data from OTClient tiles,
+/// The engine's map as the minimap's world: field data from qtclient tiles,
 /// and the engine's map notifications driving the storage the way CIP's map
 /// messages do (TMinimapTileStorage onFieldChanged / setPlayerZ / markUnseen).
 class TMinimapWorldFeed final : public MapObserver, public IMinimapWorld

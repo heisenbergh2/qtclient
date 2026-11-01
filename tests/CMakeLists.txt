@@ -2,7 +2,7 @@ find_package(GTest CONFIG REQUIRED)
 
 include(GoogleTest)
 
-function(otclient_add_gtest TARGET_NAME)
+function(qtclient_add_gtest TARGET_NAME)
     add_executable(${TARGET_NAME} ${ARGN})
 
     set_target_properties(${TARGET_NAME} PROPERTIES
@@ -16,7 +16,7 @@ function(otclient_add_gtest TARGET_NAME)
 
     target_link_libraries(${TARGET_NAME}
         PRIVATE
-            otclient_core
+            qtclient_core
             GTest::gtest
             GTest::gtest_main
     )
