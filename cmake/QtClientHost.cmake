@@ -24,6 +24,11 @@ function(qtclient_host_finalize)
     target_link_options(tibia PRIVATE "LINKER:-export_dynamic")
   elseif(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT WASM)
     target_link_options(tibia PRIVATE "LINKER:--export-dynamic")
+  elseif(EMSCRIPTEN)
+    # MAIN_MODULE=2 still DCEs unreferenced host/Qt symbols that SIDE_MODULE
+    # packs import at dlopen (empty dlerror / "Unknown error"). EXPORT_ALL
+    # alone does not stop DCE — pair with MAIN_MODULE=1 on the tibia link line.
+    target_link_options(tibia PRIVATE "SHELL:-sEXPORT_ALL=1")
   endif()
 
   if(NOT TARGET qtclient_host)

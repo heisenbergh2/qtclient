@@ -281,8 +281,11 @@ void saveClientWindowGeometry(QQuickWindow* window)
 
 QStringList dataDirs(const QString& explicitDir)
 {
+#ifndef TIBIA_CLIENT_PACKAGE_DIR
+#define TIBIA_CLIENT_PACKAGE_DIR "Tibia.app"
+#endif
     const QString appDir = QCoreApplication::applicationDirPath();
-    return {
+    QStringList dirs{
         explicitDir,
         qEnvironmentVariable("QTCLIENT_DATA_DIR"),
         QDir::current().filePath(QStringLiteral("data")),
@@ -293,6 +296,18 @@ QStringList dataDirs(const QString& explicitDir)
         QStringLiteral(TIBIA_SOURCE_DATA_DIR),
 #endif
     };
+    // Tip package (portal OPFS / desktop AppData): RCC + fonts live under
+    // Contents/Resources/assets, not ./data. Alias Soft Tibia.app ↔ IdleOT.app
+    // is planted before callMain on /play.
+    const QString appData = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    if (!appData.isEmpty()) {
+        const QString pkg = QDir(appData).filePath(
+            QLatin1String("packages/") + QLatin1String(TIBIA_CLIENT_PACKAGE_DIR));
+        dirs << pkg;
+        dirs << QDir(pkg).filePath(QStringLiteral("Contents/Resources"));
+        dirs << QDir(pkg).filePath(QStringLiteral("Contents/Resources/assets"));
+    }
+    return dirs;
 }
 
 /// Compiles every CIP QML file (and override) the app ships; the count of

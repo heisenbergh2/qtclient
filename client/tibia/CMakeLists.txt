@@ -756,12 +756,14 @@ if(EMSCRIPTEN)
   target_link_libraries(tibia PRIVATE Qt6::Widgets)
   target_link_options(tibia PRIVATE "SHELL:-sFETCH=1")
   if(TIBIA_WASM_MAIN_MODULE)
-    # Relocatable host so ModLoader can map pack native/*.wasm (SIDE_MODULE) at
-    # runtime. -fPIC is set project-wide for Emscripten (see root CMakeLists).
+    # Relocatable host so ModLoader can dlopen pack native/*.wasm (SIDE_MODULE).
+    # MAIN_MODULE=1 disables wasm-opt DCE of unreferenced host/Qt symbols that
+    # IdleOT SIDE_MODULE imports (MAIN_MODULE=2 left those out → dlopen
+    # "Unknown error"). -fPIC is project-wide for Emscripten (root CMakeLists).
     target_link_options(tibia PRIVATE
-      "SHELL:-sMAIN_MODULE=2"
+      "SHELL:-sMAIN_MODULE=1"
       "SHELL:-sERROR_ON_UNDEFINED_SYMBOLS=0")
-    message(STATUS "tibia wasm: MAIN_MODULE=2 (runtime mod packs)")
+    message(STATUS "tibia wasm: MAIN_MODULE=1 (runtime mod packs; retain host ABI)")
   endif()
 
   # Dev shell: the art pack is preloaded; release builds get it from the CDN sync.
