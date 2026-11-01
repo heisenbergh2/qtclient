@@ -72,7 +72,7 @@ qtclient_add_mod(my_pack
 Authors do **not** choose “plugin vs SIDE_MODULE”. The host loads packs with
 `ModLoader::loadFromDirectory` (startup only) via `QLibrary` + `qtclient_mod_entry`.
 
-On WASM the host must be linked with **`-sMAIN_MODULE=1`** (and `EXPORT_ALL`)
+On WASM the host must be linked with **`-sMAIN_MODULE=1`** (retain host ABI; do not pair with `EXPORT_ALL` — that blows the wasm-ld command line in CI)
 so SIDE_MODULE packs keep Soft/Qt symbols at `dlopen`. `MAIN_MODULE=2` DCE’d
 unreferenced host ABI and IdleOT `mod.wasm` failed with an empty dlerror.
 
