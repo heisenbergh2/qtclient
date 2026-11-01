@@ -88,6 +88,8 @@ public:
     virtual int order() const { return 100; }
     /// Insert/update/remove this factory's node under `camera` after `afterSprites`.
     virtual void updateScene(QQuickWindow* window, QSGNode* camera, QSGNode* afterSprites) = 0;
+    /// Host is about to destroy the camera tree — drop dangling QSGNode*s.
+    virtual void abandonNode() {}
 };
 
 struct WorldFrameHooks {
@@ -99,6 +101,7 @@ WorldLightingDriver* worldLightingDriver();
 
 void addWorldOverlayFactory(WorldOverlayFactory* factory);
 void clearWorldOverlayFactories();
+void abandonWorldOverlayNodes();
 const std::vector<WorldOverlayFactory*>& worldOverlayFactories();
 
 void setWorldFrameHooks(WorldFrameHooks hooks);

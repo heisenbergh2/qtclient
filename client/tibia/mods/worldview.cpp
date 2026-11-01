@@ -37,6 +37,14 @@ void clearWorldOverlayFactories()
     g_overlays.clear();
 }
 
+void abandonWorldOverlayNodes()
+{
+    for (WorldOverlayFactory* factory : g_overlays) {
+        if (factory)
+            factory->abandonNode();
+    }
+}
+
 const std::vector<WorldOverlayFactory*>& worldOverlayFactories()
 {
     return g_overlays;

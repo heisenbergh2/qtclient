@@ -159,6 +159,7 @@ QSGNode* TWorldMapQuickItem::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeDa
     cost.start();
     if (!m_provider || !m_provider->frame().valid) {
         qCDebug(lcWorldMap) << "no world" << (m_provider != nullptr);
+        tibia::mods::abandonWorldOverlayNodes();
         harvestNodes(oldNode);
         delete oldNode;
         return nullptr;
@@ -167,6 +168,7 @@ QSGNode* TWorldMapQuickItem::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeDa
     const bool hd = tibia::host::app().isHdMode();
     // Drop the whole tree when HD flips so no image node keeps a stale QSGTexture*.
     if (hd != m_paintedHd) {
+        tibia::mods::abandonWorldOverlayNodes();
         harvestNodes(oldNode);
         delete oldNode;
         oldNode = nullptr;
