@@ -60,33 +60,15 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
         run: bash scripts/lifecycle/publish/sdk.sh
 
-  # PRs: linux only (fast signal). Full desktop matrix on main / dispatch.
+  # PRs: linux only. Full desktop matrix on main / dispatch.
+  # (Job-level `if: matrix.*` is rejected — use fromJSON include instead.)
   client-desktop:
     name: client-${{ matrix.plat }}
-    if: github.event_name != 'pull_request' || matrix.plat == 'linux-x64'
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - plat: linux-x64
-            runner: ubuntu-24.04
-            preset: linux-release
-            os_slug: linux
-            kit: linux-x64
-            triplet: x64-linux-static
-          - plat: macos-arm64
-            runner: macos-15
-            preset: macos-release
-            os_slug: macos
-            kit: macos-arm64
-            triplet: arm64-osx-static
-          - plat: windows-x64
-            runner: windows-2022
-            preset: windows-release
-            os_slug: windows
-            kit: windows-x64
-            triplet: x64-windows-static-md
+        include: ${{ fromJSON(github.event_name == 'pull_request' && '[{"plat":"linux-x64","runner":"ubuntu-24.04","preset":"linux-release","os_slug":"linux","kit":"linux-x64","triplet":"x64-linux-static"}]' || '[{"plat":"linux-x64","runner":"ubuntu-24.04","preset":"linux-release","os_slug":"linux","kit":"linux-x64","triplet":"x64-linux-static"},{"plat":"macos-arm64","runner":"macos-15","preset":"macos-release","os_slug":"macos","kit":"macos-arm64","triplet":"arm64-osx-static"},{"plat":"windows-x64","runner":"windows-2022","preset":"windows-release","os_slug":"windows","kit":"windows-x64","triplet":"x64-windows-static-md"}]') }}
     env:
       CMAKE_BUILD_PARALLEL_LEVEL: 2
       QTCLIENT_HOST_BUILD_ID: ${{ github.sha }}
