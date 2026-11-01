@@ -9,22 +9,37 @@ runner:
       - "%f:%l:%t:%m"
 
   luacheck:
-    cmd: luacheck --formatter=plain --no-color --no-config --no-global \
-      --no-unused --no-unused-args --no-cache --no-max-line-length \
-      --no-max-code-line-length --no-max-string-line-length \
-      --no-max-comment-line-length --ignore 4 211 212 213 311 542 -d ./data/ ./modules/ || true
+    # Product tibia has no Lua datapack; skip when trees are absent.
+    cmd: >-
+      bash -c 'args=(); [[ -d data ]] && args+=(./data/); [[ -d modules ]] && args+=(./modules/);
+      [[ ${#args[@]} -gt 0 ]] || exit 0;
+      luacheck --formatter=plain --no-color --no-config --no-global
+      --no-unused --no-unused-args --no-cache --no-max-line-length
+      --no-max-code-line-length --no-max-string-line-length
+      --no-max-comment-line-length --ignore 4 211 212 213 311 542 -d
+      "${args[@]}" || true'
     errorformat:
       - "%f:%l:%c: %m"
     level: warning
 
   luac:
-    cmd: find data/ modules/ -name '*.lua' -exec sh -c 'luajit -b "$1" /dev/null' _ {} \;
+    # Bytecode-compile only when legacy OTClient Lua trees exist. Empty find
+    # + reviewdog -fail-level=error used to fail Soft Fast Checks on
+    # tibia-only checkouts (no data/modules).
+    cmd: >-
+      bash -c '[[ -d data || -d modules ]] || { echo "luac: no data/ or modules/ — skip"; exit 0; };
+      n=$(find data modules -name "*.lua" 2>/dev/null | head -1);
+      [[ -n "$n" ]] || { echo "luac: no *.lua — skip"; exit 0; };
+      find data modules -name "*.lua" -print0 2>/dev/null
+      | xargs -0 -n1 -I{} sh -c "luajit -b \"\$1\" /dev/null" _ {}'
     errorformat:
       - "%r: %f:%l: %m"
     level: error
 
   xmllint:
-    cmd: find data/ -name '*.xml' -exec xmllint --noout {} \;
+    cmd: >-
+      bash -c '[[ -d data ]] || exit 0;
+      find data/ -name "*.xml" -exec xmllint --noout {} \;'
     errorformat:
       - "%f:%l: %m"
     level: error
