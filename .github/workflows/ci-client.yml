@@ -260,10 +260,10 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
         run: bash scripts/lifecycle/publish/desktop.sh
 
-  # Wasm publish gate: main / Release dispatch only (not every PR).
+  # Wasm gate on every PR (host_exports / SIDE_MODULE closed loop). ORAS publish
+  # still only when PUBLISH_HOST (main push / Release dispatch).
   wasm:
     name: wasm
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     env:
       QTCLIENT_HOST_BUILD_ID: ${{ github.sha }}
