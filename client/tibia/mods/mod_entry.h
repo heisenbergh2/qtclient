@@ -4,10 +4,17 @@
 
 #include <QtGlobal>
 
+#if defined(__EMSCRIPTEN__)
+#  include <emscripten.h>
+#  define QTCLIENT_MOD_KEEPALIVE EMSCRIPTEN_KEEPALIVE
+#else
+#  define QTCLIENT_MOD_KEEPALIVE
+#endif
+
 #if defined(_WIN32)
 #  define QTCLIENT_MOD_EXPORT extern "C" Q_DECL_EXPORT
 #else
-#  define QTCLIENT_MOD_EXPORT extern "C" __attribute__((visibility("default")))
+#  define QTCLIENT_MOD_EXPORT extern "C" QTCLIENT_MOD_KEEPALIVE __attribute__((visibility("default")))
 #endif
 
 /// Pack native entry. Same symbol on desktop shared libs and wasm SIDE_MODULE.

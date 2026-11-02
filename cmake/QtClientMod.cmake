@@ -40,6 +40,8 @@ function(qtclient_add_mod MOD_ID)
     # project-wide for in-tree WASM; keep explicit for out-of-tree packs.
     target_compile_options(${_target} PRIVATE -fPIC)
     target_link_options(${_target} PRIVATE "SHELL:-sSIDE_MODULE=2")
+    # ModLoader dlsym("qtclient_mod_entry") — keep the C entry past DCE.
+    target_link_options(${_target} PRIVATE "LINKER:--export=qtclient_mod_entry")
     set_target_properties(${_target} PROPERTIES
       PREFIX ""
       SUFFIX ".wasm"
