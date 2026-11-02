@@ -760,15 +760,47 @@ if(EMSCRIPTEN)
     # MAIN_MODULE=2 links on normal CI RAM; keepalive exports (host_exports.json)
     # stop DCE of symbols IdleOT SIDE_MODULE imports. Do not use MAIN_MODULE=1
     # (OOM) or EXPORT_ALL (wasm-ld cmdline blowup). -fPIC is project-wide.
+    #
+    # Qt's qt_finalize_executable → Qt6WasmMacros appends
+    # -sEXPORTED_FUNCTIONS=_main,__embind_initialize_bindings AFTER any earlier
+    # host_exports flag. Emscripten keeps only the last -sEXPORTED_FUNCTIONS
+    # (no merge), so Soft #9 keepalives never reached the linker → dlopen
+    # Unknown error / CIP logo. Re-apply host_exports via DEFER after finalize.
     set(_tibia_host_exports "${TIBIA_ROOT}/cmake/host_exports.json")
     if(NOT EXISTS "${_tibia_host_exports}")
       message(FATAL_ERROR "tibia wasm: missing ${_tibia_host_exports} (run scripts/lifecycle/lib/gen-host-exports.sh)")
     endif()
+    set_property(TARGET tibia PROPERTY TIBIA_HOST_EXPORTS_JSON "${_tibia_host_exports}")
     target_link_options(tibia PRIVATE
       "SHELL:-sMAIN_MODULE=2"
-      "SHELL:-sERROR_ON_UNDEFINED_SYMBOLS=0"
-      "SHELL:-sEXPORTED_FUNCTIONS=@${_tibia_host_exports}")
-    message(STATUS "tibia wasm: MAIN_MODULE=2 + host_exports.json (SIDE_MODULE keepalive)")
+      "SHELL:-sERROR_ON_UNDEFINED_SYMBOLS=0")
+    function(tibia_reapply_wasm_host_exports)
+      if(NOT TARGET tibia)
+        return()
+      endif()
+      get_property(_exports TARGET tibia PROPERTY TIBIA_HOST_EXPORTS_JSON)
+      if(NOT _exports OR NOT EXISTS "${_exports}")
+        message(FATAL_ERROR "tibia_reapply_wasm_host_exports: missing host_exports.json")
+      endif()
+      target_link_options(tibia PRIVATE
+        "SHELL:-sEXPORTED_FUNCTIONS=@${_exports}")
+      # -u pulls each keepalive out of static Qt/tibia archives; --export alone
+      # does not extract unreferenced .a members under MAIN_MODULE=2 DCE.
+      file(READ "${_exports}" _json)
+      string(JSON _n LENGTH "${_json}")
+      if(_n GREATER 0)
+        math(EXPR _last "${_n} - 1")
+        foreach(_i RANGE ${_last})
+          string(JSON _sym GET "${_json}" ${_i})
+          if(_sym AND NOT _sym STREQUAL "")
+            target_link_options(tibia PRIVATE "LINKER:-u${_sym}")
+          endif()
+        endforeach()
+      endif()
+      message(STATUS "tibia wasm: re-applied host_exports.json after Qt finalize")
+    endfunction()
+    cmake_language(DEFER CALL tibia_reapply_wasm_host_exports)
+    message(STATUS "tibia wasm: MAIN_MODULE=2 + deferred host_exports.json (SIDE_MODULE keepalive)")
   endif()
 
   # Dev shell: the art pack is preloaded; release builds get it from the CDN sync.

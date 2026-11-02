@@ -73,10 +73,15 @@ Authors do **not** choose “plugin vs SIDE_MODULE”. The host loads packs with
 `ModLoader::loadFromDirectory` (startup only) via `QLibrary` + `qtclient_mod_entry`.
 
 On WASM the host is **`-sMAIN_MODULE=2`** plus **`cmake/host_exports.json`**
-(`-sEXPORTED_FUNCTIONS=@…`) so IdleOT `SIDE_MODULE` imports survive DCE at
-`dlopen`. Regenerate exports with
-`scripts/lifecycle/lib/gen-host-exports.sh path/to/mod.wasm`. Do **not** use
-`MAIN_MODULE=1` (CI OOM) or `EXPORT_ALL` (wasm-ld cmdline blowup).
+(`-sEXPORTED_FUNCTIONS=@…` and per-symbol `-u` so static archives extract)
+so IdleOT `SIDE_MODULE` imports survive DCE at `dlopen`. Qt’s
+`qt_finalize_executable` appends `-sEXPORTED_FUNCTIONS=_main,__embind_initialize_bindings`
+and Emscripten keeps **only the last** `-sEXPORTED_FUNCTIONS` (no merge) — that
+wipe shipped in Soft #9 and broke pack `dlopen` (CIP login logo). Soft
+re-applies `host_exports.json` with `cmake_language(DEFER)` after finalize.
+Regenerate exports with `scripts/lifecycle/lib/gen-host-exports.sh path/to/mod.wasm`.
+CI checks canaries via `scripts/lifecycle/lib/check-host-exports-wasm.sh`. Do
+**not** use `MAIN_MODULE=1` (CI OOM) or `EXPORT_ALL` (wasm-ld cmdline blowup).
 
 ```bash
 # next to client binary, or tip OPFS mods/

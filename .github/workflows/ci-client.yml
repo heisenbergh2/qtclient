@@ -311,6 +311,10 @@ jobs:
             ls -la build/tibia-wasm/bin/ 2>/dev/null || true
             exit 1
           fi
+          # Soft #9 shipped MAIN_MODULE=2 without keepalives: Qt WasmMacros
+          # overwrote EXPORTED_FUNCTIONS → dlopen(mod.wasm) Unknown error.
+          bash scripts/lifecycle/lib/check-host-exports-wasm.sh \
+            build/tibia-wasm/bin/tibia.wasm
           ccache -s || true
 
       - name: Save vcpkg + ccache
