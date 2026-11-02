@@ -61,8 +61,9 @@ if missing:
     for m in missing:
         print(f"  {m}", file=sys.stderr)
     print(
-        "  Soft must keep -sEXPORTED_FUNCTIONS=@cmake/host_exports.json "
-        "(QTCLIENT_WASM_OWN_EXPORTED_FUNCTIONS=ON; no Qt two-symbol override).",
+        "  Soft must apply host_exports.json as -Wl,--undefined=SYM,"
+        "--export-if-defined=SYM after Qt finalize (not nested @rsp; "
+        "not EXPORTED_FUNCTIONS=@host_exports).",
         file=sys.stderr,
     )
     raise SystemExit(1)
