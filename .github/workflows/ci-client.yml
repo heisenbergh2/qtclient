@@ -308,6 +308,8 @@ jobs:
           if ! bash scripts/lifecycle/build/wasm.sh; then
             echo '::error::wasm build failed; last link recipe:' >&2
             ninja -C build/tibia-wasm -t commands tibia 2>/dev/null | tail -n 5 || true
+            # Soft #11 link died with empty ninja output — force a verbose relink.
+            ninja -C build/tibia-wasm -v bin/tibia.js 2>&1 | tail -n 80 || true
             ls -la build/tibia-wasm/bin/ 2>/dev/null || true
             exit 1
           fi
