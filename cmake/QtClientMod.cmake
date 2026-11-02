@@ -42,6 +42,10 @@ function(qtclient_add_mod MOD_ID)
     target_link_options(${_target} PRIVATE "SHELL:-sSIDE_MODULE=2")
     # ModLoader dlsym("qtclient_mod_entry") — keep the C entry past DCE.
     target_link_options(${_target} PRIVATE "LINKER:--export=qtclient_mod_entry")
+    # Keeping the entry pulls QObject/moc code. Without this, wasm-ld fails:
+    # R_WASM_MEMORY_ADDR_REL_SLEB against undefined
+    # QtPrivate::QMetaTypeInterfaceWrapper<…>::metaType (see qmetatype.h).
+    target_compile_definitions(${_target} PRIVATE QT_NO_DATA_RELOCATION)
     set_target_properties(${_target} PROPERTIES
       PREFIX ""
       SUFFIX ".wasm"
