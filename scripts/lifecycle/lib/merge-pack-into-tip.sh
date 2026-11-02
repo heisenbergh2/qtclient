@@ -28,6 +28,14 @@ done
 test -f "$PACK/mod.json" || { echo "missing $PACK/mod.json" >&2; exit 1; }
 test -d "$TIP" || { echo "missing tip dir $TIP" >&2; exit 1; }
 
+# Engine root → Contents/MacOS so ModLoader sees mods next to the Play binary.
+# Callers often pass the Soft client tip root (…/engine) that contains *.app.
+macos="$(find "$TIP" -maxdepth 3 -path '*/Contents/MacOS' -type d 2>/dev/null | head -1 || true)"
+if [[ -n "$macos" && "$TIP" != "$macos" ]]; then
+  echo "[merge-pack] tip → $macos (Contents/MacOS)"
+  TIP="$macos"
+fi
+
 mods_root="$TIP/mods"
 # Single tip pack: drop demo default + any leftover siblings before installing idleot.
 if [[ -d "$mods_root" ]]; then
