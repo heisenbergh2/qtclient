@@ -76,10 +76,10 @@ On WASM the host is **`-sMAIN_MODULE=2`** plus **`cmake/host_exports.json`**
 keepalives so IdleOT `SIDE_MODULE` imports survive DCE at `dlopen`. Qt’s
 `qt_finalize_executable` owns `-sEXPORTED_FUNCTIONS=_main,__embind_initialize_bindings`
 (Emscripten keeps only the last such flag — Soft #9’s `@host_exports` wipe →
-CIP logo). Soft applies keepalives after finalize via a wasm-ld **response
-file** of `-u` + `--export-if-defined` (ARG_MAX-safe; skips missing symbols —
-re-applying `@host_exports` as `EXPORTED_FUNCTIONS` hard-fails on undefined
-exports like `qRegisterResourceData`). Regenerate with
+CIP logo). Soft applies keepalives after finalize as per-symbol
+`-Wl,--undefined=SYM,--export-if-defined=SYM` (not nested `@rsp` — Soft #14’s
+response file never reached wasm-ld; not `EXPORTED_FUNCTIONS=@host_exports` —
+undefined exports hard-fail). Regenerate with
 `scripts/lifecycle/lib/gen-host-exports.sh path/to/mod.wasm`. CI canaries:
 `scripts/lifecycle/lib/check-host-exports-wasm.sh`. Do **not** use
 `MAIN_MODULE=1` (CI OOM) or `EXPORT_ALL` (wasm-ld cmdline blowup).
