@@ -1,7 +1,7 @@
 ---
-# Stock qtclient builds (MODS=OFF) + publish client / client-sdk artifacts keyed by SHA.
-# idleot/release dispatches this at the umbrella Soft pin (workflow_dispatch + ref=SHA)
-# so a tag never depends on Soft main already having published that SHA.
+# Stock qtclient builds + publish client / client-sdk artifacts keyed by SHA.
+# PRs do NOT run this (see CI: checks for light gates). Builds only on main push
+# and idleot/release workflow_dispatch at the Soft pin.
 #
 # Compile/dep cache: .github/actions/cache-{restore,save} → workspace/.cache/{vcpkg,ccache}
 # + public GHCR ghcr.io/qtclient/vcpkg-cache:{triplet}-{baseline12}.
@@ -13,7 +13,6 @@ run-name: >-
 on:
   push:
     branches: [main]
-  pull_request:
   workflow_dispatch:
     inputs:
       release_id:
@@ -71,15 +70,32 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
         run: bash scripts/lifecycle/publish/sdk.sh
 
-  # PRs: linux only. Full desktop matrix on main / dispatch.
-  # (Job-level `if: matrix.*` is rejected — use fromJSON include instead.)
+  # Full desktop matrix on main / dispatch (PRs use CI: checks only).
   client-desktop:
     name: client-${{ matrix.plat }}
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(github.event_name == 'pull_request' && '[{"plat":"linux-x64","runner":"ubuntu-24.04","preset":"linux-release","os_slug":"linux","kit":"linux-x64","triplet":"x64-linux-static"}]' || '[{"plat":"linux-x64","runner":"ubuntu-24.04","preset":"linux-release","os_slug":"linux","kit":"linux-x64","triplet":"x64-linux-static"},{"plat":"macos-arm64","runner":"macos-15","preset":"macos-release","os_slug":"macos","kit":"macos-arm64","triplet":"arm64-osx-static"},{"plat":"windows-x64","runner":"windows-2022","preset":"windows-release","os_slug":"windows","kit":"windows-x64","triplet":"x64-windows-static-md"}]') }}
+        include:
+          - plat: linux-x64
+            runner: ubuntu-24.04
+            preset: linux-release
+            os_slug: linux
+            kit: linux-x64
+            triplet: x64-linux-static
+          - plat: macos-arm64
+            runner: macos-15
+            preset: macos-release
+            os_slug: macos
+            kit: macos-arm64
+            triplet: arm64-osx-static
+          - plat: windows-x64
+            runner: windows-2022
+            preset: windows-release
+            os_slug: windows
+            kit: windows-x64
+            triplet: x64-windows-static-md
     env:
       CMAKE_BUILD_PARALLEL_LEVEL: 2
       QTCLIENT_HOST_BUILD_ID: ${{ github.sha }}
@@ -260,8 +276,7 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
         run: bash scripts/lifecycle/publish/desktop.sh
 
-  # Wasm gate on every PR (host_exports / SIDE_MODULE closed loop). ORAS publish
-  # still only when PUBLISH_HOST (main push / Release dispatch).
+  # Wasm + SIDE_MODULE ABI canary (_sample). ORAS when PUBLISH_HOST.
   wasm:
     name: wasm
     runs-on: ubuntu-24.04
