@@ -11,6 +11,27 @@
 Do not invent an OTC-style `modules/` tree that re-hosts stock CIP.
 Keep the name **mods** / **pack** (not “plugins” — that collides with Qt QML plugins).
 
+## Drop-in contract (stock Soft + pack)
+
+Download / build **stock Soft**, place the pack under the tip, and it loads — desktop
+and `/play` — without rebuilding Soft for normal pack work:
+
+```text
+<stock Soft install>/          # desktop binary dir, or tip with tibia.wasm
+  tibia | tibia.js + tibia.wasm
+  mods/<id>/
+    mod.json                   # hostBuildId = Soft SHA (strict on WASM)
+    native/mod.*               # .so / .dylib / .dll / .wasm
+    qml/…  overrides/…
+```
+
+Soft stays product-free. Packs keep full Qt. Authors never edit
+`cmake/host_exports.json` — that file is Soft’s published **WasmHostAbi**.
+
+Local product path: `make qtclient client|wasm install` (stock install, then pack
+merge into tip **and** `dist/cdn` for `/play`). Portal tip is
+`IDLEOT_ASSET_BASE` (local nginx `:9080`).
+
 ## Pack format (desktop + WASM — same tree)
 
 ```text
@@ -123,19 +144,23 @@ qtclient_add_mod(my_pack
 Authors do **not** choose “plugin vs SIDE_MODULE”. The host loads packs with
 `ModLoader::loadFromDirectory` (startup only) via `QLibrary` + `qtclient_mod_entry`.
 
-### WASM Soft↔pack ABI (closed loop)
+### WASM Soft↔pack ABI (Soft-owned WasmHostAbi)
 
 1. Soft host is **`-sMAIN_MODULE=2`**. Tip packs are **SIDE_MODULE**.
-2. Regenerate keepalives from a pack:
-   `scripts/lifecycle/lib/gen-host-exports.sh path/to/mod.wasm`
-   → commit `cmake/host_exports.json` (pack-local denylist skipped).
+2. Soft owns keepalives in `cmake/host_exports.json` (published with `client-sdk`).
+   Regenerate only when Soft⊇pack coverage fails:
+   `make host-exports IDLEOT_MOD_WASM=path/to/mod.wasm`
+   (or `scripts/lifecycle/lib/gen-host-exports.sh`) → commit JSON → rebuild Soft wasm
+   → new Soft SHA / SDK → rebuild pack with matching `hostBuildId`.
 3. Soft links keepalives after Qt finalize via **`SHELL:@host_exports.rsp`**
    (`-Wl,--undefined=SYM,--export-if-defined=SYM` per line). Do **not** use
    `EXPORTED_FUNCTIONS=@host_exports`, nested `LINKER:@rsp`, `MAIN_MODULE=1`,
    or `EXPORT_ALL`.
-4. Gates: `check-host-exports-wasm.sh`, `check-side-module-abi.sh`,
-   `check-pack-host-coverage.sh` (Soft ⊇ pack needs). Soft `Client:ci` wasm
-   builds `_sample` and runs them.
+4. Gates (fail closed — never tip-merge a pack Soft cannot dlopen):
+   - Soft CI: `check-host-exports-wasm.sh` + `check-pack-host-coverage.sh` (`_sample`)
+   - Local `make qtclient wasm install` + release assemble: Soft⊇IdleOT coverage
+     **before** `merge-pack-into-tip`
+   - Tip presence: `check-tip-pack-presence.sh` (`mods/<id>/` + content-store blobs)
 5. WASM tip defaults **strict `hostBuildId`**. `__cxa_throw` stub must not abort
    Soft tip when a pack throws without host EH.
 
@@ -148,6 +173,7 @@ mods/my_pack/qml/my_pack/qmldir
 
 Stock CDN ships host only (`client` / `tibia.wasm`). Product packs are separate
 artifacts installed into `mods/<id>/` before Play (`make qtclient install` for local).
+Release refuses to publish a tip when Soft keepalives do not cover the pack.
 
 ## Pack tiers
 

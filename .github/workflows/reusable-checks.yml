@@ -72,6 +72,8 @@ jobs:
           bash -n scripts/lifecycle/lib/check-host-exports-wasm.sh
           bash -n scripts/lifecycle/lib/check-side-module-abi.sh
           bash -n scripts/lifecycle/lib/check-pack-host-coverage.sh
+          bash -n scripts/lifecycle/lib/check-pack-host-exports-json.sh
+          bash -n scripts/lifecycle/lib/check-tip-pack-presence.sh
 
       - name: Run analysis with reviewdog
         if: github.event.pull_request != null && github.event.pull_request.head.repo.full_name == github.repository
