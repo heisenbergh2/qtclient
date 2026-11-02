@@ -594,7 +594,9 @@ elseif(WASM)
           # setCanvasElementSize: browserwindow applyShellLayout (Debug ASSERTIONS
           # abort on typeof Module.setCanvasElementSize when the symbol is missing).
           -sEXPORTED_RUNTIME_METHODS=ccall,setCanvasElementSize,FS,IDBFS
-          "-sEXPORTED_FUNCTIONS=@${_WASM_HOST_EXPORTS}"
+          # Do NOT pass EXPORTED_FUNCTIONS=@host_exports.json here (Soft #9: Qt
+          # finalize overwrites / undefined hard-fail). SIDE_MODULE keepalives are
+          # SHELL:@host_exports.rsp on target tibia after finalize (tibia/CMakeLists).
           # Must list every key shell.html assigns on Module (Emscripten abort if extra).
           -sINCOMING_MODULE_JS_API=[locateFile,preRun,postRun,print,printErr,canvas,setStatus,monitorRunDependencies,onAbort]
           -sFORCE_FILESYSTEM
