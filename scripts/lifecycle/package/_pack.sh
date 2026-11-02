@@ -17,6 +17,16 @@ pack_sdk() {
   cp -a "$OTC/cmake/QtClientHost.cmake" "$DEST/cmake/"
   cp -a "$OTC/cmake/GeneratePackQmldir.cmake" "$DEST/cmake/"
   cp -a "$OTC/cmake/QtClientConfig.cmake.in" "$DEST/cmake/" 2>/dev/null || true
+  # Pack ABI gates + host_exports regen (IdleOT wrappers call these).
+  mkdir -p "$DEST/scripts/lifecycle/lib" "$DEST/cmake"
+  cp -a "$OTC/scripts/lifecycle/lib/wasm_abi.py" "$DEST/scripts/lifecycle/lib/"
+  cp -a "$OTC/scripts/lifecycle/lib/pack_local_denylist.txt" "$DEST/scripts/lifecycle/lib/"
+  cp -a "$OTC/scripts/lifecycle/lib/gen-host-exports.sh" "$DEST/scripts/lifecycle/lib/"
+  cp -a "$OTC/scripts/lifecycle/lib/check-side-module-abi.sh" "$DEST/scripts/lifecycle/lib/"
+  cp -a "$OTC/scripts/lifecycle/lib/check-pack-host-coverage.sh" "$DEST/scripts/lifecycle/lib/"
+  cp -a "$OTC/scripts/lifecycle/lib/check-host-exports-wasm.sh" "$DEST/scripts/lifecycle/lib/"
+  cp -a "$OTC/scripts/lifecycle/lib/write_host_exports_rsp.py" "$DEST/scripts/lifecycle/lib/"
+  cp -a "$OTC/cmake/host_exports.json" "$DEST/cmake/" 2>/dev/null || true
 
   python3 "$OTC/tools/cip/gen_cpp.py" \
     "$OTC/client/upstream/contract" \

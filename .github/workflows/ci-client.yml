@@ -306,11 +306,13 @@ jobs:
         # Same as desktop: wait for Qt: build GHCR kits — never compile qtdeclarative here.
         run: bash tools/qt/ci-setup.sh --wasm --pull-only --with-vcpkg --with-deps
 
-      - name: Build stock wasm client
+      - name: Build stock wasm client (+ _sample SIDE_MODULE ABI canary)
         env:
           QT_ROOT: ${{ runner.temp }}/Qt
-          STOCK_HOST: '1'
-          QTCLIENT_ENABLE_MODS: 'OFF'
+          # Enable _sample SIDE_MODULE so Soft CI proves host_exports cover a pack.
+          STOCK_HOST: '0'
+          QTCLIENT_ENABLE_MODS: 'ON'
+          QTCLIENT_MODS: '_sample'
         run: |
           set -euo pipefail
           mkdir -p "$CCACHE_DIR"
@@ -324,10 +326,18 @@ jobs:
             ls -la build/tibia-wasm/bin/ 2>/dev/null || true
             exit 1
           fi
-          # Soft #9 shipped MAIN_MODULE=2 without keepalives: Qt WasmMacros
-          # overwrote EXPORTED_FUNCTIONS → dlopen(mod.wasm) Unknown error.
+          # Full host_exports.json must survive MAIN_MODULE=2 DCE / Qt wipe.
           bash scripts/lifecycle/lib/check-host-exports-wasm.sh \
             build/tibia-wasm/bin/tibia.wasm
+          SAMPLE_WASM="$(find build/tibia-wasm/mods -name mod.wasm -type f 2>/dev/null | head -1 || true)"
+          if [[ -z "$SAMPLE_WASM" || ! -f "$SAMPLE_WASM" ]]; then
+            echo "::error::_sample SIDE_MODULE mod.wasm missing under build/tibia-wasm/mods" >&2
+            find build/tibia-wasm -name '*.wasm' 2>/dev/null | head -40 || true
+            exit 1
+          fi
+          bash scripts/lifecycle/lib/check-side-module-abi.sh "$SAMPLE_WASM"
+          bash scripts/lifecycle/lib/check-pack-host-coverage.sh \
+            build/tibia-wasm/bin/tibia.wasm "$SAMPLE_WASM"
           ccache -s || true
 
       - name: Save vcpkg + ccache
