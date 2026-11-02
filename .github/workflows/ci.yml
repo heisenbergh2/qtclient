@@ -1,6 +1,6 @@
 ---
-# Fast checks only. Stock client compiles (linux/mac/windows/wasm + client-sdk)
-# publish from ci-client.yml on push/PR.
+# Fast PR / main gates only. Full client builds + publish: ci-client.yml
+# (main push / Release workflow_dispatch) — not on pull_request.
 name: 'CI: checks'
 
 on:

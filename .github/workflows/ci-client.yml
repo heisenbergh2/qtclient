@@ -1,7 +1,7 @@
 ---
-# Stock qtclient builds (MODS=OFF) + publish client / client-sdk artifacts keyed by SHA.
-# idleot/release dispatches this at the umbrella Soft pin (workflow_dispatch + ref=SHA)
-# so a tag never depends on Soft main already having published that SHA.
+# Stock qtclient builds + publish client / client-sdk artifacts keyed by SHA.
+# PRs do NOT run this (see CI: checks for light gates). Builds only on main push
+# and idleot/release workflow_dispatch at the Soft pin.
 #
 # Compile/dep cache: .github/actions/cache-{restore,save} → workspace/.cache/{vcpkg,ccache}
 # + public GHCR ghcr.io/qtclient/vcpkg-cache:{triplet}-{baseline12}.
@@ -13,7 +13,6 @@ run-name: >-
 on:
   push:
     branches: [main]
-  pull_request:
   workflow_dispatch:
     inputs:
       release_id:
@@ -71,15 +70,32 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
         run: bash scripts/lifecycle/publish/sdk.sh
 
-  # PRs: linux only. Full desktop matrix on main / dispatch.
-  # (Job-level `if: matrix.*` is rejected — use fromJSON include instead.)
+  # Full desktop matrix on main / dispatch (PRs use CI: checks only).
   client-desktop:
     name: client-${{ matrix.plat }}
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(github.event_name == 'pull_request' && '[{"plat":"linux-x64","runner":"ubuntu-24.04","preset":"linux-release","os_slug":"linux","kit":"linux-x64","triplet":"x64-linux-static"}]' || '[{"plat":"linux-x64","runner":"ubuntu-24.04","preset":"linux-release","os_slug":"linux","kit":"linux-x64","triplet":"x64-linux-static"},{"plat":"macos-arm64","runner":"macos-15","preset":"macos-release","os_slug":"macos","kit":"macos-arm64","triplet":"arm64-osx-static"},{"plat":"windows-x64","runner":"windows-2022","preset":"windows-release","os_slug":"windows","kit":"windows-x64","triplet":"x64-windows-static-md"}]') }}
+        include:
+          - plat: linux-x64
+            runner: ubuntu-24.04
+            preset: linux-release
+            os_slug: linux
+            kit: linux-x64
+            triplet: x64-linux-static
+          - plat: macos-arm64
+            runner: macos-15
+            preset: macos-release
+            os_slug: macos
+            kit: macos-arm64
+            triplet: arm64-osx-static
+          - plat: windows-x64
+            runner: windows-2022
+            preset: windows-release
+            os_slug: windows
+            kit: windows-x64
+            triplet: x64-windows-static-md
     env:
       CMAKE_BUILD_PARALLEL_LEVEL: 2
       QTCLIENT_HOST_BUILD_ID: ${{ github.sha }}
@@ -260,10 +276,9 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
         run: bash scripts/lifecycle/publish/desktop.sh
 
-  # Wasm publish gate: main / Release dispatch only (not every PR).
+  # Wasm + SIDE_MODULE ABI canary (_sample). ORAS when PUBLISH_HOST.
   wasm:
     name: wasm
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     env:
       QTCLIENT_HOST_BUILD_ID: ${{ github.sha }}
@@ -306,11 +321,13 @@ jobs:
         # Same as desktop: wait for Qt: build GHCR kits — never compile qtdeclarative here.
         run: bash tools/qt/ci-setup.sh --wasm --pull-only --with-vcpkg --with-deps
 
-      - name: Build stock wasm client
+      - name: Build stock wasm client (+ _sample SIDE_MODULE ABI canary)
         env:
           QT_ROOT: ${{ runner.temp }}/Qt
-          STOCK_HOST: '1'
-          QTCLIENT_ENABLE_MODS: 'OFF'
+          # Enable _sample SIDE_MODULE so Soft CI proves host_exports cover a pack.
+          STOCK_HOST: '0'
+          QTCLIENT_ENABLE_MODS: 'ON'
+          QTCLIENT_MODS: '_sample'
         run: |
           set -euo pipefail
           mkdir -p "$CCACHE_DIR"
@@ -324,10 +341,18 @@ jobs:
             ls -la build/tibia-wasm/bin/ 2>/dev/null || true
             exit 1
           fi
-          # Soft #9 shipped MAIN_MODULE=2 without keepalives: Qt WasmMacros
-          # overwrote EXPORTED_FUNCTIONS → dlopen(mod.wasm) Unknown error.
+          # Full host_exports.json must survive MAIN_MODULE=2 DCE / Qt wipe.
           bash scripts/lifecycle/lib/check-host-exports-wasm.sh \
             build/tibia-wasm/bin/tibia.wasm
+          SAMPLE_WASM="$(find build/tibia-wasm/mods -name mod.wasm -type f 2>/dev/null | head -1 || true)"
+          if [[ -z "$SAMPLE_WASM" || ! -f "$SAMPLE_WASM" ]]; then
+            echo "::error::_sample SIDE_MODULE mod.wasm missing under build/tibia-wasm/mods" >&2
+            find build/tibia-wasm -name '*.wasm' 2>/dev/null | head -40 || true
+            exit 1
+          fi
+          bash scripts/lifecycle/lib/check-side-module-abi.sh "$SAMPLE_WASM"
+          bash scripts/lifecycle/lib/check-pack-host-coverage.sh \
+            build/tibia-wasm/bin/tibia.wasm "$SAMPLE_WASM"
           ccache -s || true
 
       - name: Save vcpkg + ccache

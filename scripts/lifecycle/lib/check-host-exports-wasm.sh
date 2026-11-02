@@ -1,73 +1,57 @@
 #!/usr/bin/env bash
-# Fail if tibia.wasm is missing SIDE_MODULE keepalive exports.
-# Catches Qt WasmMacros overwriting -sEXPORTED_FUNCTIONS (Soft #9 ship miss).
+# Fail if tibia.wasm is missing any cmake/host_exports.json keepalive.
+# Catches Qt WasmMacros wipe and incomplete MAIN_MODULE=2 keepalives.
 set -euo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"
+SOFT="$(cd "$HERE/../../.." && pwd)"
 WASM="${1:-}"
+JSON="${2:-$SOFT/cmake/host_exports.json}"
 if [[ -z "$WASM" || ! -f "$WASM" ]]; then
-  echo "usage: $0 path/to/tibia.wasm" >&2
+  echo "usage: $0 path/to/tibia.wasm [host_exports.json]" >&2
   exit 2
 fi
-python3 - "$WASM" <<'PY'
-import sys
+if [[ ! -f "$JSON" ]]; then
+  echo "missing host_exports.json: $JSON" >&2
+  exit 2
+fi
+python3 - "$HERE" "$WASM" "$JSON" <<'PY'
+import json, sys
 from pathlib import Path
 
-def read_leb(buf, i):
-    result = 0
-    shift = 0
-    while True:
-        b = buf[i]
-        i += 1
-        result |= (b & 0x7F) << shift
-        if not (b & 0x80):
-            return result, i
-        shift += 7
+lib = Path(sys.argv[1])
+sys.path.insert(0, str(lib))
+from wasm_abi import export_names  # noqa: E402
 
-def export_names(path: Path) -> set[str]:
-    data = path.read_bytes()
-    if data[:4] != b"\0asm":
-        raise SystemExit(f"not a wasm module: {path}")
-    off = 8
-    while off < len(data):
-        sid = data[off]
-        off += 1
-        size, off = read_leb(data, off)
-        end = off + size
-        if sid == 7:
-            n, i = read_leb(data, off)
-            names = set()
-            for _ in range(n):
-                nl, i = read_leb(data, i)
-                names.add(data[i : i + nl].decode("utf-8"))
-                i += nl
-                i += 1  # kind
-                _, i = read_leb(data, i)
-            return names
-        off = end
-    return set()
-
-# Canaries tip packs rely on — must survive MAIN_MODULE=2 DCE / Qt wipe.
-# __cxa_throw: SIDE_MODULE libc++ EH import (see wasm/side_module_abi_stubs.cpp).
-canaries = [
-    "_ZN5tibia3app21ClientOptionsNotifier8instanceEv",
-    "_ZN4Tile9hasGroundEv",
-    "_ZN5tibia13qmlcomponents18buildWorldGeometryERKNS0_18WorldGeometryInputE",
-    "g_things",
-    "g_map",
-    "__cxa_throw",
-]
-names = export_names(Path(sys.argv[1]))
-missing = [c for c in canaries if c not in names]
-print(f"[host-exports-check] {sys.argv[1]}: {len(names)} exports")
+wasm = Path(sys.argv[2])
+needed = json.loads(Path(sys.argv[3]).read_text())
+# JS/shell stubs — not object symbols; Qt EXPORTED_FUNCTIONS covers these.
+skip = {
+    "_main",
+    "__embind_initialize_bindings",
+    "_paste_return",
+    "_otc_request_shell_layout",
+    "_otc_sync_shell_layout",
+    "_otc_signal_dom_input",
+}
+required = [s for s in needed if s and s not in skip]
+names = export_names(wasm)
+missing = [s for s in required if s not in names]
+print(f"[host-exports-check] {wasm}: {len(names)} exports; require {len(required)}")
 if missing:
-    print("[host-exports-check] MISSING canaries (Qt EXPORTED_FUNCTIONS wipe or DCE):", file=sys.stderr)
-    for m in missing:
-        print(f"  {m}", file=sys.stderr)
     print(
-        "  Soft must apply host_exports.json as -Wl,--undefined=SYM,"
-        "--export-if-defined=SYM after Qt finalize (not nested @rsp; "
-        "not EXPORTED_FUNCTIONS=@host_exports).",
+        f"[host-exports-check] MISSING {len(missing)} keepalives "
+        "(incomplete host_exports apply or DCE):",
+        file=sys.stderr,
+    )
+    for m in missing[:40]:
+        print(f"  {m}", file=sys.stderr)
+    if len(missing) > 40:
+        print(f"  … +{len(missing) - 40} more", file=sys.stderr)
+    print(
+        "  Soft must apply host_exports.json as SHELL:@host_exports.rsp "
+        "(-Wl,--undefined=SYM,--export-if-defined=SYM) after Qt finalize.",
         file=sys.stderr,
     )
     raise SystemExit(1)
-print("[host-exports-check] ok:", ", ".join(canaries))
+print(f"[host-exports-check] ok: all {len(required)} host_exports present")
 PY

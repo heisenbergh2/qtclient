@@ -763,8 +763,8 @@ if(EMSCRIPTEN)
     # Qt finalize sets -sEXPORTED_FUNCTIONS=_main,__embind_initialize_bindings
     # (Emscripten keeps only the last such flag). Soft #9–#14: do not re-apply
     # EXPORTED_FUNCTIONS=@host_exports (undefined exports hard-fail) or nested
-    # LINKER:@rsp (dropped). Expand each keepalive as
-    # SHELL:-Wl,--undefined=SYM,--export-if-defined=SYM after finalize.
+    # LINKER:@rsp (dropped). Pass keepalives as emcc-level SHELL:@host_exports.rsp
+    # (one -Wl,--undefined=SYM,--export-if-defined=SYM per line) after finalize.
     # ERROR_ON_UNDEFINED_SYMBOLS=0 for missing Qt pulls.
     #
     # side_module_abi_stubs.cpp defines EH symbols packs may import even when
@@ -786,30 +786,33 @@ if(EMSCRIPTEN)
       if(NOT _exports OR NOT EXISTS "${_exports}")
         message(FATAL_ERROR "tibia_apply_wasm_host_export_flags: missing host_exports.json")
       endif()
-      file(READ "${_exports}" _json)
-      string(JSON _n LENGTH "${_json}")
-      # JS/shell stubs — not object symbols; Qt EXPORTED_FUNCTIONS covers _main /
-      # __embind_initialize_bindings.
-      set(_skip "_main;__embind_initialize_bindings;_paste_return;_otc_request_shell_layout;_otc_sync_shell_layout;_otc_signal_dom_input")
-      set(_count 0)
-      if(_n GREATER 0)
-        math(EXPR _last "${_n} - 1")
-        foreach(_i RANGE ${_last})
-          string(JSON _sym GET "${_json}" ${_i})
-          if(_sym AND NOT _sym STREQUAL "")
-            if(NOT ";${_skip};" MATCHES ";${_sym};")
-              # Pull from .a / keep from Soft .o, then export if present.
-              target_link_options(tibia PRIVATE
-                "SHELL:-Wl,--undefined=${_sym},--export-if-defined=${_sym}")
-              math(EXPR _count "${_count}+1")
-            endif()
-          endif()
-        endforeach()
+      set(_rsp "${CMAKE_CURRENT_BINARY_DIR}/host_exports.rsp")
+      # Generate rsp at defer time so ~2k keepalives do not explode argv
+      # (Soft #14 nested LINKER:@rsp was dropped; emcc SHELL:@ works).
+      if(NOT Python3_EXECUTABLE)
+        find_package(Python3 COMPONENTS Interpreter REQUIRED)
       endif()
-      message(STATUS "tibia wasm: host_exports keepalive flags (${_count} symbols)")
+      set(ENV{HOST_EXPORTS_JSON} "${_exports}")
+      set(ENV{HOST_EXPORTS_RSP} "${_rsp}")
+      execute_process(
+        COMMAND "${Python3_EXECUTABLE}" "${TIBIA_ROOT}/scripts/lifecycle/lib/write_host_exports_rsp.py"
+        RESULT_VARIABLE _rsp_rc
+        OUTPUT_VARIABLE _rsp_out
+        ERROR_VARIABLE _rsp_err
+      )
+      if(NOT _rsp_rc EQUAL 0 OR NOT EXISTS "${_rsp}")
+        message(FATAL_ERROR
+          "tibia_apply_wasm_host_export_flags: failed to write ${_rsp}\n${_rsp_out}${_rsp_err}")
+      endif()
+      file(SIZE "${_rsp}" _rsp_bytes)
+      if(_rsp_bytes EQUAL 0)
+        message(FATAL_ERROR "tibia_apply_wasm_host_export_flags: empty ${_rsp}")
+      endif()
+      target_link_options(tibia PRIVATE "SHELL:@${_rsp}")
+      message(STATUS "tibia wasm: host_exports keepalive via SHELL:@${_rsp} (${_rsp_out})")
     endfunction()
     cmake_language(DEFER CALL tibia_apply_wasm_host_export_flags)
-    message(STATUS "tibia wasm: MAIN_MODULE=2 + deferred host_exports flags (SIDE_MODULE keepalive)")
+    message(STATUS "tibia wasm: MAIN_MODULE=2 + deferred host_exports rsp (SIDE_MODULE keepalive)")
   endif()
 
   # Dev shell: the art pack is preloaded; release builds get it from the CDN sync.

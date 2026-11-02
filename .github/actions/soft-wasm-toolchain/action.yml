@@ -1,0 +1,45 @@
+name: soft-wasm-toolchain
+description: Pull CIP Qt wasm kit + emsdk + vcpkg deps (shared Soft Client:ci / pack-wasm).
+inputs:
+  with_vcpkg:
+    description: Run vcpkg install for Soft wasm triplet
+    required: false
+    default: 'true'
+  pull_wait_secs:
+    description: Max seconds to wait for CIP Qt GHCR kit
+    required: false
+    default: '7200'
+runs:
+  using: composite
+  steps:
+    - name: Resolve CIP Qt SHA
+      id: cip
+      shell: bash
+      working-directory: ${{ github.action_path }}/../../..
+      run: |
+        set -euo pipefail
+        # action_path = .github/actions/soft-wasm-toolchain → Soft root is ../../..
+        SOFT="$(cd "${{ github.action_path }}/../../.." && pwd)"
+        cd "$SOFT"
+        source tools/qt/qt-version.sh
+        SHA="$(qt_resolve_cip_sha)"
+        [[ -n "$SHA" ]] || { echo "no qt5-cip SHA" >&2; exit 1; }
+        echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+        echo "soft=$SOFT" >> "$GITHUB_OUTPUT"
+
+    - name: qtclient bootstrap (deps + vcpkg + CIP Qt wasm)
+      shell: bash
+      working-directory: ${{ github.action_path }}/../../..
+      env:
+        QT_ROOT: ${{ runner.temp }}/Qt
+        QT_CIP_SHA: ${{ steps.cip.outputs.sha }}
+        QT_PULL_ONLY: '1'
+        QT_PULL_WAIT_SECS: ${{ inputs.pull_wait_secs }}
+        QT_PULL_INTERVAL_SECS: '90'
+      run: |
+        set -euo pipefail
+        args=(--wasm --pull-only --with-deps)
+        if [[ "${{ inputs.with_vcpkg }}" == "true" ]]; then
+          args+=(--with-vcpkg)
+        fi
+        bash tools/qt/ci-setup.sh "${args[@]}"

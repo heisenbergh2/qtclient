@@ -103,9 +103,9 @@ shared library.
 4. Point `tibiametadata` `modsurl` / `modsversionurl` at that tip
 5. Ship Soft host unchanged + that metadata URL
 
-Pack-local C++ types must stay inside the SIDE_MODULE (no Soft `env` imports
-for product symbols). Soft keepalives cover the public host ABI only
-(`cmake/host_exports.json` + canaries).
+Pack-local C++ types must stay inside the SIDE_MODULE (see
+`scripts/lifecycle/lib/pack_local_denylist.txt`). Soft keepalives cover host
+Qt/tibia symbols packs import (`cmake/host_exports.json`).
 
 Build with one CMake API:
 
@@ -123,19 +123,21 @@ qtclient_add_mod(my_pack
 Authors do **not** choose “plugin vs SIDE_MODULE”. The host loads packs with
 `ModLoader::loadFromDirectory` (startup only) via `QLibrary` + `qtclient_mod_entry`.
 
-On WASM the host is **`-sMAIN_MODULE=2`** plus **`cmake/host_exports.json`**
-keepalives so pack `SIDE_MODULE` imports survive DCE at `dlopen`. Qt’s
-`qt_finalize_executable` owns `-sEXPORTED_FUNCTIONS=_main,__embind_initialize_bindings`
-(Emscripten keeps only the last such flag — Soft #9’s `@host_exports` wipe →
-stock logo). Soft applies keepalives after finalize as per-symbol
-`-Wl,--undefined=SYM,--export-if-defined=SYM` (not nested `@rsp` — Soft #14’s
-response file never reached wasm-ld; not `EXPORTED_FUNCTIONS=@host_exports` —
-undefined exports hard-fail). Regenerate with
-`scripts/lifecycle/lib/gen-host-exports.sh path/to/mod.wasm`. CI canaries:
-`scripts/lifecycle/lib/check-host-exports-wasm.sh`. Do **not** use
-`MAIN_MODULE=1` (CI OOM) or `EXPORT_ALL` (wasm-ld cmdline blowup).
-`__cxa_throw` is stubbed in `client/tibia/wasm/side_module_abi_stubs.cpp` so
-libc++ EH imports from packs resolve on Soft tips that omit full EH.
+### WASM Soft↔pack ABI (closed loop)
+
+1. Soft host is **`-sMAIN_MODULE=2`**. Tip packs are **SIDE_MODULE**.
+2. Regenerate keepalives from a pack:
+   `scripts/lifecycle/lib/gen-host-exports.sh path/to/mod.wasm`
+   → commit `cmake/host_exports.json` (pack-local denylist skipped).
+3. Soft links keepalives after Qt finalize via **`SHELL:@host_exports.rsp`**
+   (`-Wl,--undefined=SYM,--export-if-defined=SYM` per line). Do **not** use
+   `EXPORTED_FUNCTIONS=@host_exports`, nested `LINKER:@rsp`, `MAIN_MODULE=1`,
+   or `EXPORT_ALL`.
+4. Gates: `check-host-exports-wasm.sh`, `check-side-module-abi.sh`,
+   `check-pack-host-coverage.sh` (Soft ⊇ pack needs). Soft `Client:ci` wasm
+   builds `_sample` and runs them.
+5. WASM tip defaults **strict `hostBuildId`**. `__cxa_throw` stub must not abort
+   Soft tip when a pack throws without host EH.
 
 ```bash
 # next to client binary, or tip OPFS mods/

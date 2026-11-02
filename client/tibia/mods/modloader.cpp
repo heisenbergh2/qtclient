@@ -151,10 +151,16 @@ bool loadNativeEntry(const QString& native, const ModContext* earlyCtx)
     }
 
 #if defined(Q_OS_WASM)
+    // Clear any stale linker error before dlopen.
+    (void)dlerror();
     void* handle = dlopen(native.toUtf8().constData(), RTLD_NOW | RTLD_GLOBAL);
     if (!handle) {
-        qCWarning(lcModLoader) << "failed to load" << native << lib->errorString()
-                               << "dlopen:" << (dlerror() ? dlerror() : "");
+        const char* err = dlerror();
+        qCWarning(lcModLoader) << "failed to load" << native
+                               << "QLibrary:" << lib->errorString()
+                               << "dlopen:" << (err && err[0] ? err : "(empty)")
+                               << "— usually unresolved env imports; Soft host_exports "
+                                  "must cover pack (see check-pack-host-coverage.sh)";
         return false;
     }
     auto* entry = reinterpret_cast<QtClientModEntryFn>(dlsym(handle, QTCLIENT_MOD_ENTRY_NAME));
@@ -327,7 +333,15 @@ bool ModLoader::loadFromDirectory(const QString& packDir, const ModContext* earl
         const qtclient::ModApiV1* api = qtclient_mod_host_api_v1();
         const char* hostId = api && api->hostBuildId ? api->hostBuildId : "";
         if (std::strcmp(hostId, meta.hostBuildId.toUtf8().constData()) != 0) {
-            const bool strict = qEnvironmentVariableIntValue("QTCLIENT_MOD_STRICT_HOST");
+            // WASM tip defaults strict (pin Soft SHA == pack hostBuildId). Desktop
+            // DEV stays loose unless QTCLIENT_MOD_STRICT_HOST=1. Set =0 to override.
+            const bool strict = qEnvironmentVariableIsSet("QTCLIENT_MOD_STRICT_HOST")
+                ? qEnvironmentVariableIntValue("QTCLIENT_MOD_STRICT_HOST") != 0
+#if defined(Q_OS_WASM)
+                : true;
+#else
+                : false;
+#endif
             qCWarning(lcModLoader) << "mod" << meta.id << "hostBuildId" << meta.hostBuildId
                                    << "!= host" << hostId
                                    << (strict ? "(reject)" : "(continuing; set QTCLIENT_MOD_STRICT_HOST=1 to reject)");

@@ -139,6 +139,11 @@ if [[ "$WASM_BUILD" -eq 1 ]]; then
   case "${QTCLIENT_ENABLE_LAUNCHER_MODS:-}" in
     1|ON|on|true|TRUE|yes|YES) _launcher_mods_cmake=-DQTCLIENT_ENABLE_LAUNCHER_MODS=ON ;;
   esac
+  # Optional: QTCLIENT_MODS=_sample (underscore templates need an explicit list).
+  _mods_list_cmake=()
+  if [[ -n "${QTCLIENT_MODS:-}" ]]; then
+    _mods_list_cmake=(-DQTCLIENT_MODS="${QTCLIENT_MODS}")
+  fi
   WASM_CMAKE_ARGS=(
     -G Ninja -S "$OTC" -B "$BUILD_DIR"
     -DCMAKE_MAKE_PROGRAM="$NINJA"
@@ -161,12 +166,14 @@ if [[ "$WASM_BUILD" -eq 1 ]]; then
     -DWASM_USE_WASM_EXCEPTIONS=OFF
     "$_mods_cmake"
     "$_launcher_mods_cmake"
+    "${_mods_list_cmake[@]}"
   )
   FP="$(
     {
     echo "tibia-wasm-vcpkg-v2-fpic"
     echo "stock-host=${STOCK_HOST:-0}"
     echo "mods=${QTCLIENT_ENABLE_MODS:-ON}"
+    echo "mods-list=${QTCLIENT_MODS:-}"
     echo "launcher-mods=${QTCLIENT_ENABLE_LAUNCHER_MODS:-OFF}"
     printf '%s\n' "${WASM_CMAKE_ARGS[@]}"
     shasum -a 256 "$OTC/vcpkg.json" "$OTC/vcpkg-configuration.json" 2>/dev/null || true

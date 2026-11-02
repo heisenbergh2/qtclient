@@ -1,0 +1,11 @@
+# Substrings: SIDE_MODULE env/GOT imports matching any stay in the pack.
+# Soft must not keepalive these (host has no definitions). Shared by
+# gen-host-exports.sh, check-side-module-abi.sh, check-pack-host-coverage.sh.
+qmlcomponents12RaycastStamp
+qmlcomponents12RaycastFrame
+qmlcomponents20TRaycastLightingNode
+qmlcomponents19TWeatherOverlayNode
+qmlcomponents16TRaycastLighting
+tibia6idleot
+N5tibia6idleot
+mods19WorldLightingDriver

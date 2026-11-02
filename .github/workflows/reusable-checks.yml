@@ -28,6 +28,51 @@ jobs:
       - name: Run yamllint
         run: yamllint -c .yamllint.yaml .github
 
+      - name: Soft↔pack ABI scripts (light)
+        run: |
+          set -euo pipefail
+          python3 -m py_compile \
+            scripts/lifecycle/lib/wasm_abi.py \
+            scripts/lifecycle/lib/write_host_exports_rsp.py
+          test -f scripts/lifecycle/lib/pack_local_denylist.txt
+          test -f cmake/host_exports.json
+          python3 - <<'PY'
+          import json, os, subprocess, sys, tempfile
+          from pathlib import Path
+          root = Path(".").resolve()
+          sys.path.insert(0, str(root / "scripts/lifecycle/lib"))
+          from wasm_abi import host_needed_from_pack, is_pack_local, load_denylist
+
+          denylist = load_denylist()
+          assert denylist, "empty pack_local_denylist"
+          assert is_pack_local("qmlcomponents12RaycastStamp", denylist)
+          assert is_pack_local("_ZN5tibia6idleot3hud10THudLayoutD2Ev", denylist)
+          assert not is_pack_local("_ZN7QStringaSERKS_", denylist)
+
+          syms = json.loads((root / "cmake/host_exports.json").read_text())
+          assert isinstance(syms, list) and len(syms) >= 100, f"host_exports too small: {len(syms) if isinstance(syms, list) else type(syms)}"
+          leaked = [s for s in syms if is_pack_local(s, denylist)]
+          assert not leaked, f"pack-local leaked into host_exports: {leaked[:5]}"
+
+          with tempfile.TemporaryDirectory() as td:
+              rsp = Path(td) / "host_exports.rsp"
+              env = os.environ.copy()
+              env["HOST_EXPORTS_JSON"] = str(root / "cmake/host_exports.json")
+              env["HOST_EXPORTS_RSP"] = str(rsp)
+              subprocess.check_call(
+                  [sys.executable, str(root / "scripts/lifecycle/lib/write_host_exports_rsp.py")],
+                  env=env,
+              )
+              lines = [ln for ln in rsp.read_text().splitlines() if ln.strip()]
+              assert len(lines) >= 100, f"rsp too small: {len(lines)}"
+              assert all(ln.startswith("-Wl,--undefined=") for ln in lines)
+          print(f"[abi-light] ok denylist={len(denylist)} host_exports={len(syms)} rsp_ok")
+          PY
+          bash -n scripts/lifecycle/lib/gen-host-exports.sh
+          bash -n scripts/lifecycle/lib/check-host-exports-wasm.sh
+          bash -n scripts/lifecycle/lib/check-side-module-abi.sh
+          bash -n scripts/lifecycle/lib/check-pack-host-coverage.sh
+
       - name: Run analysis with reviewdog
         if: github.event.pull_request != null && github.event.pull_request.head.repo.full_name == github.repository
         env:
