@@ -782,21 +782,11 @@ if(EMSCRIPTEN)
       if(NOT _exports OR NOT EXISTS "${_exports}")
         message(FATAL_ERROR "tibia_reapply_wasm_host_exports: missing host_exports.json")
       endif()
+      # Emscripten turns EXPORTED_FUNCTIONS into --export (+ its own -u). Do not
+      # also emit per-symbol LINKER:-u here — Soft #11's 100+ -u flags made the
+      # wasm link fail instantly with no wasm-ld diagnostics.
       target_link_options(tibia PRIVATE
         "SHELL:-sEXPORTED_FUNCTIONS=@${_exports}")
-      # -u pulls each keepalive out of static Qt/tibia archives; --export alone
-      # does not extract unreferenced .a members under MAIN_MODULE=2 DCE.
-      file(READ "${_exports}" _json)
-      string(JSON _n LENGTH "${_json}")
-      if(_n GREATER 0)
-        math(EXPR _last "${_n} - 1")
-        foreach(_i RANGE ${_last})
-          string(JSON _sym GET "${_json}" ${_i})
-          if(_sym AND NOT _sym STREQUAL "")
-            target_link_options(tibia PRIVATE "LINKER:-u${_sym}")
-          endif()
-        endforeach()
-      endif()
       message(STATUS "tibia wasm: re-applied host_exports.json after Qt finalize")
     endfunction()
     cmake_language(DEFER CALL tibia_reapply_wasm_host_exports)
