@@ -99,7 +99,7 @@ QString vendoredStyle(const char* name)
     if (!file.open(QIODevice::ReadOnly))
         return {};
     QString css = QString::fromUtf8(file.readAll());
-    // qtclient qrc chrome; IdleOT tip pack can replace BackgroundImage / logos.
+    // qtclient qrc chrome; tip pack brand.json can replace BackgroundImage / logos.
     const LauncherBrand& brand = LauncherBrand::instance();
     if (!brand.packRoot.isEmpty()) {
         for (const char* img : {"BackgroundImage.jpg", "TibiaLogo_Classic.png", "CipSoftLogo.png"}) {
@@ -157,7 +157,7 @@ bool readDevDesktop(QString* exeOut, QString* cwdOut, QString* revisionOut)
 #endif
 }
 
-/// Monorepo `make qtclient|idleot launcher run` — Play uses QTCLIENT_DEV_JSON, not tip AppData.
+/// Monorepo `make qtclient launcher run` — Play uses QTCLIENT_DEV_JSON, not tip AppData.
 bool devPlayAvailable()
 {
     return readDevDesktop(nullptr, nullptr, nullptr);
@@ -430,7 +430,7 @@ LauncherWindow::LauncherWindow(PackageClient* client, QWidget* parent)
     // Otherwise leave the action disabled until refresh() knows NotInstalled vs Play.
     if (devPlayAvailable()) {
         m_status->setText(LauncherBrand::instance().noMods ? QStringLiteral("Dev (qtclient)")
-                                                           : QStringLiteral("Dev (IdleOT)"));
+                                                           : QStringLiteral("Dev (pack)"));
         setActionSkin(QStringLiteral("Green"), QStringLiteral("Play"));
         m_action->setEnabled(true);
     } else {
@@ -644,12 +644,23 @@ QString LauncherWindow::localAssetsStamp() const
     return readText(QDir(packageDir()).filePath(QStringLiteral("assets.json.sha256")));
 }
 
+QString LauncherWindow::localModsStamp() const
+{
+    return readText(QDir(packageDir()).filePath(QStringLiteral("mods.json.sha256")));
+}
+
 bool LauncherWindow::thingsPacksStampPresent() const
 {
     const QDir tip(packageDir());
-    // Canonical stamp (portal + CIP-style); accept legacy IdleOT name once.
+    // Canonical stamp (portal + CIP-style); accept legacy product name once.
     return QFileInfo::exists(tip.filePath(QStringLiteral(".tibia-sprite-packs")))
         || QFileInfo::exists(tip.filePath(QStringLiteral(".idleot-sprite-packs")));
+}
+
+bool LauncherWindow::modsStampOk() const
+{
+    // Empty remote = channel omitted (stock CIP) or stamp not fetched yet.
+    return m_remoteModsVersion.isEmpty() || localModsStamp() == m_remoteModsVersion;
 }
 
 QString LauncherWindow::installStatusLabel() const
@@ -668,7 +679,7 @@ QString LauncherWindow::installStatusLabel() const
     // PartiallyInstalled until stamps + files match → InstalledAndUsable.
     if (m_busy)
         return QStringLiteral("InstallationInProgress");
-    if (!versionOk || m_hasGaps || !assetsOk || !thingsOk)
+    if (!versionOk || m_hasGaps || !assetsOk || !thingsOk || !modsStampOk())
         return QStringLiteral("PartiallyInstalled");
     return QStringLiteral("InstalledAndUsable");
 }
@@ -676,6 +687,7 @@ QString LauncherWindow::installStatusLabel() const
 void LauncherWindow::fetchRemoteStampsParallel()
 {
     // CipSoft GETs launcher/client/assets stamps concurrently before decide.
+    // Soft adds an optional mods stamp (third tip channel) when modsversionurl is set.
     int pending = 0;
     QEventLoop loop;
     auto oneDone = [&] {
@@ -697,6 +709,16 @@ void LauncherWindow::fetchRemoteStampsParallel()
                 qCWarning(lcLauncher) << "assets stamp failed" << error;
             else
                 m_remoteAssetsVersion = QString::fromUtf8(body).trimmed();
+            oneDone();
+        });
+    }
+    if (!m_build.modsVersionUrl.isEmpty()) {
+        ++pending;
+        m_client->getAsync(m_build.modsVersionUrl, [this, oneDone](const QByteArray& body, const QString& error) {
+            if (!error.isEmpty() && body.isEmpty())
+                qCWarning(lcLauncher) << "mods stamp failed" << error;
+            else
+                m_remoteModsVersion = QString::fromUtf8(body).trimmed();
             oneDone();
         });
     }
@@ -764,6 +786,7 @@ void LauncherWindow::refresh()
         m_hasGaps = m_client->hasFileGaps(m_packageDoc, packageDir());
     const bool assetsStale = !m_remoteAssetsVersion.isEmpty()
         && localAssetsStamp() != m_remoteAssetsVersion;
+    const bool modsStale = !modsStampOk();
 #ifdef __EMSCRIPTEN__
     const bool thingsStale = !thingsPacksStampPresent();
 #else
@@ -776,19 +799,22 @@ void LauncherWindow::refresh()
                        << "remote" << m_remoteVersion
                        << "gaps" << m_hasGaps
                        << "assetsStale" << assetsStale
+                       << "modsStale" << modsStale
                        << "thingsStale" << thingsStale
                        << "busy" << m_busy
                        << "devPlay" << devPlay
                        << "assetsStamp" << localAssetsStamp()
                        << "remoteAssets" << m_remoteAssetsVersion
+                       << "modsStamp" << localModsStamp()
+                       << "remoteMods" << m_remoteModsVersion
                        << "thingsStamp" << thingsPacksStampPresent();
     if (devPlay) {
-        // Local monorepo: Play launches build/<preset>/bin/client (qtclient --no-mods
-        // or IdleOT pack). Tip Download/Update is skipped — use a tip-only
+        // Local monorepo: Play launches build/<preset>/bin/client (stock --no-mods
+        // or tip pack). Tip Download/Update is skipped — use a tip-only
         // launcher without QTCLIENT_DEV_JSON for CIP install rehearsal.
         m_status->setText(LauncherBrand::instance().noMods
                               ? QStringLiteral("Dev (qtclient)")
-                              : QStringLiteral("Dev (IdleOT)"));
+                              : QStringLiteral("Dev (pack)"));
         setActionSkin(QStringLiteral("Green"), QStringLiteral("Play"));
         m_action->setEnabled(true);
         return;
@@ -797,7 +823,7 @@ void LauncherWindow::refresh()
     if (local.isEmpty())
         setActionSkin(QStringLiteral("Blue"), QStringLiteral("Download"));
     else if ((!m_remoteVersion.isEmpty() && local != m_remoteVersion) || m_hasGaps || assetsStale
-             || thingsStale)
+             || modsStale || thingsStale)
         setActionSkin(QStringLiteral("Orange"), QStringLiteral("Update"));
     else
         setActionSkin(QStringLiteral("Green"), QStringLiteral("Play"));
@@ -832,9 +858,9 @@ void LauncherWindow::considerSelfUpdate(const CipMetadata& metadata)
     return;
 #else
     // Local monorepo / CDN rehearsal must never replace this cmake-built binary
-    // with the product tip launcher (IdleOT.app). TIBIA_LAUNCHER_VERSION is a git
-    // short hash here, so it always differs from tip package.json.version and
-    // would otherwise download 80+ IdleOT.app files and startDetached that tip.
+    // with the product tip launcher. TIBIA_LAUNCHER_VERSION is a git short hash
+    // here, so it always differs from tip package.json.version and would
+    // otherwise download tip launcher files and startDetached that tip.
     if (devPlayAvailable()) {
         qInfo("launcher self-update skipped (QTCLIENT_DEV_JSON / Dev Play)");
         return;
@@ -935,7 +961,8 @@ void LauncherWindow::start()
     const QString local = localVersion();
     const bool assetsOk = m_remoteAssetsVersion.isEmpty()
         || localAssetsStamp() == m_remoteAssetsVersion;
-    if (patch && !m_remoteVersion.isEmpty() && local == m_remoteVersion && !m_hasGaps && assetsOk) {
+    if (patch && !m_remoteVersion.isEmpty() && local == m_remoteVersion && !m_hasGaps && assetsOk
+        && modsStampOk()) {
         play();
         return;
     }
@@ -978,7 +1005,7 @@ void LauncherWindow::startAsync()
             return;
         }
         m_build = *build;
-        // CipSoft: parallel client + assets stamp GETs, then package + hints.
+        // CipSoft: parallel client + assets (+ optional mods) stamp GETs, then package + hints.
         auto continueWithPackage = [this] {
             m_client->getAsync(m_build.packageUrl, [this](const QByteArray& packageBody, const QString&) {
                 QString parseError;
@@ -1004,7 +1031,9 @@ void LauncherWindow::startAsync()
             QString versionError;
         };
         auto* stamps = new StampState;
-        stamps->pending = 1 + (m_build.assetsVersionUrl.isEmpty() ? 0 : 1);
+        stamps->pending = 1
+            + (m_build.assetsVersionUrl.isEmpty() ? 0 : 1)
+            + (m_build.modsVersionUrl.isEmpty() ? 0 : 1);
         auto onStampDone = [this, stamps, continueWithPackage] {
             if (--stamps->pending > 0)
                 return;
@@ -1030,6 +1059,12 @@ void LauncherWindow::startAsync()
         if (!m_build.assetsVersionUrl.isEmpty()) {
             m_client->getAsync(m_build.assetsVersionUrl, [this, onStampDone](const QByteArray& assetsBody, const QString&) {
                 m_remoteAssetsVersion = QString::fromUtf8(assetsBody).trimmed();
+                onStampDone();
+            });
+        }
+        if (!m_build.modsVersionUrl.isEmpty()) {
+            m_client->getAsync(m_build.modsVersionUrl, [this, onStampDone](const QByteArray& modsBody, const QString&) {
+                m_remoteModsVersion = QString::fromUtf8(modsBody).trimmed();
                 onStampDone();
             });
         }
@@ -1128,6 +1163,40 @@ void LauncherWindow::installAssetsAndThingsAsync(bool thenPlay)
     installThingsPacksViaJs(thenPlay, version);
 }
 
+void LauncherWindow::installModsThenFinishAsync(bool thenPlay, const QString& version)
+{
+    if (m_build.modsUrl.isEmpty() || modsStampOk()) {
+        finishInstallAsync(thenPlay, version);
+        return;
+    }
+    m_status->setText(QStringLiteral("Loading mods…"));
+    m_client->getAsync(m_build.modsUrl, [this, thenPlay, version](const QByteArray& body, const QString& error) {
+        QString parseError = error;
+        const QVector<CipFile> files = m_client->parseAssetFiles(body, &parseError);
+        if (files.isEmpty() && !parseError.isEmpty()) {
+            setBusy(false, {});
+            refresh();
+            m_status->setText(parseError);
+            return;
+        }
+        const QString tip = packageDir();
+        const qint64 batch = m_client->pendingPackedBytes(files, tip);
+        m_client->installModsAsync(m_build.modsUrl, files, m_remoteModsVersion, tip,
+                                   [this, thenPlay, version](bool ok, const QString& installError) {
+                                       if (!ok) {
+                                           setBusy(false, {});
+                                           refresh();
+                                           m_status->setText(installError.isEmpty()
+                                                                ? QStringLiteral("The installation of mods failed.")
+                                                                : installError);
+                                           return;
+                                       }
+                                       finishInstallAsync(thenPlay, version);
+                                   },
+                                   0, batch > 0 ? batch : 1);
+    });
+}
+
 void LauncherWindow::onThingsInstallDone(bool ok, bool thenPlay, const QString& version)
 {
     if (!ok) {
@@ -1143,7 +1212,7 @@ void LauncherWindow::onThingsInstallDone(bool ok, bool thenPlay, const QString& 
             stamp.close();
         }
     }
-    finishInstallAsync(thenPlay, version);
+    installModsThenFinishAsync(thenPlay, version);
 }
 
 void LauncherWindow::installIfNeededAsync(bool thenPlay)
@@ -1153,22 +1222,30 @@ void LauncherWindow::installIfNeededAsync(bool thenPlay)
     const bool assetsOk = m_remoteAssetsVersion.isEmpty()
         || localAssetsStamp() == m_remoteAssetsVersion;
     const bool thingsOk = thingsPacksStampPresent();
+    const bool modsOk = modsStampOk();
     qCInfo(lcLauncher) << "installIfNeededAsync"
                        << "thenPlay" << thenPlay
                        << "packageOk" << packageOk
                        << "assetsOk" << assetsOk
                        << "thingsOk" << thingsOk
+                       << "modsOk" << modsOk
                        << "local" << local
                        << "remote" << m_remoteVersion;
-    if (packageOk && assetsOk && thingsOk) {
+    if (packageOk && assetsOk && thingsOk && modsOk) {
         if (thenPlay)
             play();
         return;
     }
     setBusy(true, {});
     m_timer.start();
+    if (packageOk && assetsOk && thingsOk && !modsOk) {
+        qCInfo(lcLauncher) << "installIfNeededAsync → mods only";
+        const QString version = m_remoteVersion.isEmpty() ? local : m_remoteVersion;
+        installModsThenFinishAsync(thenPlay, version);
+        return;
+    }
     if (packageOk) {
-        qCInfo(lcLauncher) << "installIfNeededAsync → assets/things only";
+        qCInfo(lcLauncher) << "installIfNeededAsync → assets/things (+ mods)";
         installAssetsAndThingsAsync(thenPlay);
         return;
     }
@@ -1181,7 +1258,7 @@ void LauncherWindow::installIfNeededAsync(bool thenPlay)
             return;
         }
         m_packageDoc = doc;
-        // Engine package into FS tip, then assets/things packs before Play is ready.
+        // Engine package into FS tip, then assets/things/mods before Play is ready.
         m_client->installPackageAsync(m_build.packageUrl, doc, packageDir(),
                                       [this, thenPlay, version = doc.version](bool ok, const QString& installError) {
                                           if (!ok) {
@@ -1217,7 +1294,8 @@ void LauncherWindow::installIfNeeded(bool thenPlay)
     const QString local = localVersion();
     const bool assetsOk = m_remoteAssetsVersion.isEmpty()
         || localAssetsStamp() == m_remoteAssetsVersion;
-    if (!m_remoteVersion.isEmpty() && local == m_remoteVersion && !m_hasGaps && assetsOk) {
+    if (!m_remoteVersion.isEmpty() && local == m_remoteVersion && !m_hasGaps && assetsOk
+        && modsStampOk()) {
         if (thenPlay)
             play();
         return;
@@ -1235,7 +1313,7 @@ void LauncherWindow::installIfNeeded(bool thenPlay)
         return;
     }
 
-    // One progress span across client package + assets so the bar does not
+    // One progress span across client package + assets + mods so the bar does not
     // snap back to 0% between phases (felt like two competing updates).
     const QString tip = packageDir();
     qint64 pkgBytes = m_client->pendingPackedBytes(doc.files, tip);
@@ -1250,7 +1328,22 @@ void LauncherWindow::installIfNeeded(bool thenPlay)
             assetBytes = m_client->pendingPackedBytes(assets, tip);
         }
     }
-    const qint64 grandTotal = qMax(pkgBytes + assetBytes, qint64(1));
+    QVector<CipFile> mods;
+    qint64 modsBytes = 0;
+    QString modsVersion;
+    if (!m_build.modsUrl.isEmpty()) {
+        modsVersion = m_remoteModsVersion.isEmpty()
+            ? m_client->fetchVersion(m_build.modsVersionUrl, &error)
+            : m_remoteModsVersion;
+        if (!modsVersion.isEmpty())
+            m_remoteModsVersion = modsVersion;
+        const QString haveMods = localModsStamp();
+        if (!modsVersion.isEmpty() && modsVersion != haveMods) {
+            mods = m_client->fetchAssetFiles(m_build.modsUrl, &error);
+            modsBytes = m_client->pendingPackedBytes(mods, tip);
+        }
+    }
+    const qint64 grandTotal = qMax(pkgBytes + assetBytes + modsBytes, qint64(1));
 
     if (!m_client->installPackage(m_build.packageUrl, doc, tip, &error, 0, grandTotal)) {
         setBusy(false, {});
@@ -1261,6 +1354,15 @@ void LauncherWindow::installIfNeeded(bool thenPlay)
     m_packageDoc = doc;
     if (!assets.isEmpty()) {
         if (!m_client->installAssets(m_build.assetsUrl, assets, assetsVersion, tip, &error, pkgBytes, grandTotal)) {
+            setBusy(false, {});
+            m_status->setText(error);
+            refresh();
+            return;
+        }
+    }
+    if (!mods.isEmpty()) {
+        if (!m_client->installMods(m_build.modsUrl, mods, modsVersion, tip, &error,
+                                   pkgBytes + assetBytes, grandTotal)) {
             setBusy(false, {});
             m_status->setText(error);
             refresh();
@@ -1295,7 +1397,8 @@ void LauncherWindow::onAction()
 #else
     const bool thingsOk = true;
 #endif
-    if (!m_remoteVersion.isEmpty() && local == m_remoteVersion && !m_hasGaps && assetsOk && thingsOk)
+    if (!m_remoteVersion.isEmpty() && local == m_remoteVersion && !m_hasGaps && assetsOk && thingsOk
+        && modsStampOk())
         play();
 #ifdef __EMSCRIPTEN__
     else
@@ -1330,19 +1433,30 @@ bool LauncherWindow::tryPlayDevClient()
         qInfo().noquote() << "Play → qtclient DEV client (--default-mod)" << exe;
     } else {
         const QString tipDir = QFileInfo(exe).absolutePath();
-        const QString idleot = QDir(tipDir).filePath(QStringLiteral("mods/idleot/mod.json"));
+        const QDir tipMods(QDir(tipDir).filePath(QStringLiteral("mods")));
+        bool tipPack = false;
+        if (tipMods.exists()) {
+            for (const QFileInfo& info : tipMods.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+                if (info.fileName().startsWith(QLatin1Char('_')))
+                    continue;
+                if (QFile::exists(info.absoluteFilePath() + QStringLiteral("/mod.json"))) {
+                    tipPack = true;
+                    break;
+                }
+            }
+        }
         const QString envMods = qEnvironmentVariable("QTCLIENT_MODS_DIR");
         const bool envPack = !envMods.isEmpty()
             && (QFile::exists(QDir(envMods).filePath(QStringLiteral("mod.json")))
-                || QFile::exists(QDir(envMods).filePath(QStringLiteral("idleot/mod.json"))));
-        if (!QFileInfo::exists(idleot) && !envPack) {
-            m_status->setText(QStringLiteral("IdleOT pack missing — make qtclient client install"));
-            qWarning("Play: missing tip pack %s", qUtf8Printable(idleot));
+                || QDir(envMods).exists());
+        if (!tipPack && !envPack) {
+            m_status->setText(QStringLiteral("Tip pack missing — make qtclient client install"));
+            qWarning("Play: missing tip mods/<id>/mod.json under %s", qUtf8Printable(tipDir));
             setLogoState(LogoState::Classic);
             refresh();
             return true; // handled (do not fall through to tip package)
         }
-        qInfo().noquote() << "Play → IdleOT DEV client" << exe;
+        qInfo().noquote() << "Play → packed DEV client" << exe;
     }
     if (cwd.isEmpty())
         cwd = QFileInfo(exe).absolutePath();
@@ -1421,7 +1535,7 @@ void LauncherWindow::play()
         }, pkg.constData(), data.constData());
     }
 #else
-    // Local monorepo: qtclient/IdleOT build from dist/cdn/latest/dev.json (not tip AppData).
+    // Local monorepo: qtclient build from dist/cdn/latest/dev.json (not tip AppData).
     if (tryPlayDevClient())
         return;
     const QString dir = packageDir();
@@ -1507,7 +1621,7 @@ void LauncherWindow::spawn(const QString& executable, const QString& workDir, co
     env.insert(QStringLiteral("QTCLIENT_SHOW_FILE"), showFile);
     env.insert(QStringLiteral("QTCLIENT_LAUNCHER_BIN"), QCoreApplication::applicationFilePath());
     // Tip CDN for assets; login URLs come from the client's mod.json `urls`
-    // (mods/myaac or mods/idleot) — do not inject QTCLIENT_LOGIN_* here.
+    // (tip mods/<id> urls) — do not inject QTCLIENT_LOGIN_* here.
     env.insert(QStringLiteral("QTCLIENT_ASSET_BASE"), m_client->cdnBase());
 
     auto* process = new QProcess(this);

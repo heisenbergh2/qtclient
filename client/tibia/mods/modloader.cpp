@@ -286,7 +286,7 @@ QStringList ModLoader::tipModsRoots()
         // cleanPath: on WASM applicationDirPath is often "/", so
         // absoluteFilePath("../mods") becomes "/../mods". That still finds
         // files via Qt but dlopen(SIDE_MODULE) fails on the non-normalized
-        // path (IdleOT pack → CIP login logo). Dedup after clean.
+        // path (tip pack → stock login logo). Dedup after clean.
         const QStringList raw = {
             app.filePath(QStringLiteral("mods")),
             app.absoluteFilePath(QStringLiteral("../Resources/mods")),
@@ -320,6 +320,9 @@ bool ModLoader::loadFromDirectory(const QString& packDir, const ModContext* earl
                                << "outside host range" << kMinApi << ".." << kSupportedApi;
         return false;
     }
+    // Prefer cleaned pack dir for native/QML paths (see tipModsRoots).
+    meta.dir = pack;
+
     if (!meta.hostBuildId.isEmpty()) {
         const qtclient::ModApiV1* api = qtclient_mod_host_api_v1();
         const char* hostId = api && api->hostBuildId ? api->hostBuildId : "";
@@ -332,31 +335,42 @@ bool ModLoader::loadFromDirectory(const QString& packDir, const ModContext* earl
                 return false;
         }
     }
-    if (!meta.identity.displayName.empty()) {
-        registerMod({ meta.identity, nullptr });
-    }
-    // Prefer cleaned pack dir for native/QML paths (see tipModsRoots).
-    meta.dir = pack;
 
+    // Atomic product load: when native is declared or present on disk, dlopen
+    // must succeed before identity / urls / QML registration. Otherwise tip
+    // packs show chrome without backends (partial product).
+    const QString native = resolveNativePath(meta);
+    const bool haveNative = nativeExists(native);
+    const bool expectsNative = !meta.urlsOnly;
+    if (expectsNative || haveNative) {
+        if (!haveNative) {
+            qCCritical(lcModLoader) << "mod" << meta.id << "declares native but missing" << native;
+            return false;
+        }
+        if (!loadNativeEntry(native, earlyCtx)) {
+            qCCritical(lcModLoader) << "mod" << meta.id << "native load failed" << native
+                                    << "(refusing identity/urls/QML side effects)";
+            return false;
+        }
+    }
+
+    if (!meta.identity.displayName.empty())
+        registerMod({ meta.identity, nullptr });
     if (!meta.urls.empty())
         registerModUrls(meta.urls);
-
     registerPackQmlPaths(meta);
 
-    const QString native = resolveNativePath(meta);
-    if (nativeExists(native)) {
-        if (!loadNativeEntry(native, earlyCtx))
-            return false;
+    if (expectsNative || haveNative) {
         qCInfo(lcModLoader) << "loaded mod" << meta.id << "from" << pack;
         return true;
     }
 
-    if (meta.urlsOnly || !meta.urls.empty() || !meta.identity.displayName.empty()) {
+    if (!meta.urls.empty() || !meta.identity.displayName.empty()) {
         qCInfo(lcModLoader) << "loaded urls/identity-only mod" << meta.id << "from" << pack;
         return true;
     }
 
-    qCWarning(lcModLoader) << "mod" << meta.id << "missing native" << native;
+    qCWarning(lcModLoader) << "mod" << meta.id << "has no native, urls, or identity";
     return false;
 }
 
