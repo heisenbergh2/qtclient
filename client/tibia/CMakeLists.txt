@@ -761,11 +761,17 @@ if(EMSCRIPTEN)
     # stop DCE of symbols IdleOT SIDE_MODULE imports. Do not use MAIN_MODULE=1
     # (OOM) or EXPORT_ALL (wasm-ld cmdline blowup). -fPIC is project-wide.
     #
-    # Qt's qt_finalize_executable → Qt6WasmMacros appends
-    # -sEXPORTED_FUNCTIONS=_main,__embind_initialize_bindings AFTER any earlier
-    # host_exports flag. Emscripten keeps only the last -sEXPORTED_FUNCTIONS
-    # (no merge), so Soft #9 keepalives never reached the linker → dlopen
-    # Unknown error / CIP logo. Re-apply host_exports via DEFER after finalize.
+    # Qt finalize sets -sEXPORTED_FUNCTIONS=_main,__embind_initialize_bindings
+    # (Emscripten keeps only the last such flag). Soft #9 listed keepalives via
+    # EXPORTED_FUNCTIONS=@host_exports but Qt wiped them → CIP logo. Soft #12
+    # re-applied @host_exports after finalize, but em++ then hard-errored on
+    # undefined exported symbols (e.g. qRegisterResourceData not yet pulled
+    # from Qt .a). Soft #11's bulk LINKER:-u blew the cmdline.
+    #
+    # After finalize: leave Qt's two-symbol EXPORTED_FUNCTIONS alone, and apply
+    # host keepalives as wasm-ld --export-if-defined + -u via a response file
+    # (ARG_MAX-safe; missing symbols skipped for export, -u with
+    # ERROR_ON_UNDEFINED_SYMBOLS=0).
     set(_tibia_host_exports "${TIBIA_ROOT}/cmake/host_exports.json")
     if(NOT EXISTS "${_tibia_host_exports}")
       message(FATAL_ERROR "tibia wasm: missing ${_tibia_host_exports} (run scripts/lifecycle/lib/gen-host-exports.sh)")
@@ -774,23 +780,40 @@ if(EMSCRIPTEN)
     target_link_options(tibia PRIVATE
       "SHELL:-sMAIN_MODULE=2"
       "SHELL:-sERROR_ON_UNDEFINED_SYMBOLS=0")
-    function(tibia_reapply_wasm_host_exports)
+    function(tibia_apply_wasm_host_export_rsp)
       if(NOT TARGET tibia)
         return()
       endif()
       get_property(_exports TARGET tibia PROPERTY TIBIA_HOST_EXPORTS_JSON)
       if(NOT _exports OR NOT EXISTS "${_exports}")
-        message(FATAL_ERROR "tibia_reapply_wasm_host_exports: missing host_exports.json")
+        message(FATAL_ERROR "tibia_apply_wasm_host_export_rsp: missing host_exports.json")
       endif()
-      # Emscripten turns EXPORTED_FUNCTIONS into --export (+ its own -u). Do not
-      # also emit per-symbol LINKER:-u here — Soft #11's 100+ -u flags made the
-      # wasm link fail instantly with no wasm-ld diagnostics.
-      target_link_options(tibia PRIVATE
-        "SHELL:-sEXPORTED_FUNCTIONS=@${_exports}")
-      message(STATUS "tibia wasm: re-applied host_exports.json after Qt finalize")
+      set(_rsp "${CMAKE_BINARY_DIR}/tibia_host_exports.rsp")
+      file(READ "${_exports}" _json)
+      string(JSON _n LENGTH "${_json}")
+      set(_lines "")
+      # JS/shell stubs — not object symbols; Qt EXPORTED_FUNCTIONS covers _main /
+      # __embind_initialize_bindings. Do not -u these.
+      set(_skip "_main;__embind_initialize_bindings;_paste_return;_otc_request_shell_layout;_otc_sync_shell_layout;_otc_signal_dom_input")
+      if(_n GREATER 0)
+        math(EXPR _last "${_n} - 1")
+        foreach(_i RANGE ${_last})
+          string(JSON _sym GET "${_json}" ${_i})
+          if(_sym AND NOT _sym STREQUAL "")
+            if(NOT ";${_skip};" MATCHES ";${_sym};")
+              # One flag per line for lld response files.
+              string(APPEND _lines "-u${_sym}\n--export-if-defined=${_sym}\n")
+            endif()
+          endif()
+        endforeach()
+      endif()
+      file(WRITE "${_rsp}" "${_lines}")
+      # LINKER:@file → -Wl,@file for em++/wasm-ld (avoids ARG_MAX).
+      target_link_options(tibia PRIVATE "LINKER:@${_rsp}")
+      message(STATUS "tibia wasm: host_exports keepalive rsp ${_rsp}")
     endfunction()
-    cmake_language(DEFER CALL tibia_reapply_wasm_host_exports)
-    message(STATUS "tibia wasm: MAIN_MODULE=2 + deferred host_exports.json (SIDE_MODULE keepalive)")
+    cmake_language(DEFER CALL tibia_apply_wasm_host_export_rsp)
+    message(STATUS "tibia wasm: MAIN_MODULE=2 + deferred host_exports rsp (SIDE_MODULE keepalive)")
   endif()
 
   # Dev shell: the art pack is preloaded; release builds get it from the CDN sync.

@@ -73,16 +73,16 @@ Authors do **not** choose “plugin vs SIDE_MODULE”. The host loads packs with
 `ModLoader::loadFromDirectory` (startup only) via `QLibrary` + `qtclient_mod_entry`.
 
 On WASM the host is **`-sMAIN_MODULE=2`** plus **`cmake/host_exports.json`**
-(`-sEXPORTED_FUNCTIONS=@…`; emscripten supplies `--export`/`-u`) so IdleOT
-`SIDE_MODULE` imports survive DCE at `dlopen`. Qt’s `qt_finalize_executable`
-appends `-sEXPORTED_FUNCTIONS=_main,__embind_initialize_bindings` and
-Emscripten keeps **only the last** `-sEXPORTED_FUNCTIONS` (no merge) — that
-wipe shipped in Soft #9 and broke pack `dlopen` (CIP login logo). Soft
-re-applies `host_exports.json` with `cmake_language(DEFER)` after finalize
-(do not pile on extra per-symbol `-u` — Soft #11’s bulk `-u` broke the link).
-Regenerate exports with `scripts/lifecycle/lib/gen-host-exports.sh path/to/mod.wasm`.
-CI checks canaries via `scripts/lifecycle/lib/check-host-exports-wasm.sh`. Do
-**not** use `MAIN_MODULE=1` (CI OOM) or `EXPORT_ALL` (wasm-ld cmdline blowup).
+keepalives so IdleOT `SIDE_MODULE` imports survive DCE at `dlopen`. Qt’s
+`qt_finalize_executable` owns `-sEXPORTED_FUNCTIONS=_main,__embind_initialize_bindings`
+(Emscripten keeps only the last such flag — Soft #9’s `@host_exports` wipe →
+CIP logo). Soft applies keepalives after finalize via a wasm-ld **response
+file** of `-u` + `--export-if-defined` (ARG_MAX-safe; skips missing symbols —
+re-applying `@host_exports` as `EXPORTED_FUNCTIONS` hard-fails on undefined
+exports like `qRegisterResourceData`). Regenerate with
+`scripts/lifecycle/lib/gen-host-exports.sh path/to/mod.wasm`. CI canaries:
+`scripts/lifecycle/lib/check-host-exports-wasm.sh`. Do **not** use
+`MAIN_MODULE=1` (CI OOM) or `EXPORT_ALL` (wasm-ld cmdline blowup).
 
 ```bash
 # next to client binary, or tip OPFS mods/
