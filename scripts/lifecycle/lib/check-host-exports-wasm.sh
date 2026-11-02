@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fail if tibia.wasm is missing IdleOT SIDE_MODULE keepalive exports.
+# Fail if tibia.wasm is missing SIDE_MODULE keepalive exports.
 # Catches Qt WasmMacros overwriting -sEXPORTED_FUNCTIONS (Soft #9 ship miss).
 set -euo pipefail
 WASM="${1:-}"
@@ -45,13 +45,15 @@ def export_names(path: Path) -> set[str]:
         off = end
     return set()
 
-# Canaries from IdleOT pack env imports — must survive MAIN_MODULE=2 DCE.
+# Canaries tip packs rely on — must survive MAIN_MODULE=2 DCE / Qt wipe.
+# __cxa_throw: SIDE_MODULE libc++ EH import (see wasm/side_module_abi_stubs.cpp).
 canaries = [
     "_ZN5tibia3app21ClientOptionsNotifier8instanceEv",
     "_ZN4Tile9hasGroundEv",
     "_ZN5tibia13qmlcomponents18buildWorldGeometryERKNS0_18WorldGeometryInputE",
     "g_things",
     "g_map",
+    "__cxa_throw",
 ]
 names = export_names(Path(sys.argv[1]))
 missing = [c for c in canaries if c not in names]

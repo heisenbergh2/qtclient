@@ -87,7 +87,6 @@
   "_ZNK7QString8arg_implE14QAnyStringViewi5QChar",
   "_ZNSt11logic_errorC2EPKc",
   "_ZNSt20bad_array_new_lengthC1Ev",
-  "_ZNSt3__26vectorIN5tibia13qmlcomponents12RaycastStampENS_9allocatorIS3_EEE18__insert_with_sizeB8ne190106INS_11__wrap_iterIPS3_EESA_EESA_NS8_IPKS3_EET_T0_l",
   "_ZTISt12length_error",
   "_ZTISt20bad_array_new_length",
   "_ZTV6QImage",

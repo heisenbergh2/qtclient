@@ -48,6 +48,10 @@ struct CipBuild
     QUrl versionUrl;
     QUrl assetsUrl;
     QUrl assetsVersionUrl;
+    /// Optional tip pack channel (mods/<id>/ under the client package).
+    /// Same shape as assets: mods.json + mods.json.sha256. Empty = stock CIP.
+    QUrl modsUrl;
+    QUrl modsVersionUrl;
 };
 
 struct CipPackageInfo
@@ -137,6 +141,7 @@ public:
     void getAsync(const QUrl& url, GetCallback done);
     CipMetadata parseMetadata(const QByteArray& body, QString* error) const;
     CipPackageDoc parsePackage(const QByteArray& body, QString* error) const;
+    /// Parse CIP assets.json or tip mods.json (`files` array; same shape).
     QVector<CipFile> fetchAssetFiles(const QUrl& assetsUrl, QString* error);
     QVector<CipFile> parseAssetFiles(const QByteArray& body, QString* error) const;
     QString fetchHints(const QUrl& hintsUrl, QString* error);
@@ -163,6 +168,15 @@ public:
     void installAssetsAsync(const QUrl& assetsUrl, const QVector<CipFile>& files, const QString& assetsVersion,
                             const QString& destDir, InstallCallback done, qint64 progressBase = 0,
                             qint64 progressTotal = -1);
+    /**
+     * Tip product pack into destDir (localfile paths under mods/<id>/…).
+     * Writes mods.json.sha256. No-op channel when modsUrl is empty.
+     */
+    bool installMods(const QUrl& modsUrl, const QVector<CipFile>& files, const QString& modsVersion,
+                     const QString& destDir, QString* error, qint64 progressBase = 0, qint64 progressTotal = -1);
+    void installModsAsync(const QUrl& modsUrl, const QVector<CipFile>& files, const QString& modsVersion,
+                          const QString& destDir, InstallCallback done, qint64 progressBase = 0,
+                          qint64 progressTotal = -1);
     /** Packed bytes still needed for files not already installed (progress totals). */
     qint64 pendingPackedBytes(const QVector<CipFile>& files, const QString& destDir) const;
 

@@ -72,11 +72,13 @@ private:
     void installIfNeededAsync(bool thenPlay);
     /** After engine package: CIP assets stamp + product things packs into OPFS tip. */
     void installAssetsAndThingsAsync(bool thenPlay);
+    /** After assets/things: optional tip mods channel, then finish. */
+    void installModsThenFinishAsync(bool thenPlay, const QString& version);
     void finishInstallAsync(bool thenPlay, const QString& version);
     void installThingsPacksViaJs(bool thenPlay, const QString& version);
 #endif
     void play();
-    /// Local DEV: `QTCLIENT_DEV_JSON` desktop.exe (qtclient --no-mods / IdleOT pack).
+    /// Local DEV: `QTCLIENT_DEV_JSON` desktop.exe (stock --no-mods / tip pack).
     bool tryPlayDevClient();
     void spawn(const QString& executable, const QString& workDir, const QString& revision,
                const QStringList& clientArgs = {});
@@ -84,7 +86,10 @@ private:
     QString packageDir() const;
     QString localVersion() const;
     QString localAssetsStamp() const;
+    QString localModsStamp() const;
     bool thingsPacksStampPresent() const;
+    /// True when mods channel omitted or local mods.json.sha256 matches remote.
+    bool modsStampOk() const;
     /// CipSoft install vocabulary: Unknown → PartiallyInstalled → InstalledAndUsable.
     QString installStatusLabel() const;
     void fetchRemoteStampsParallel();
@@ -97,6 +102,7 @@ private:
     QUrl m_hintsUrl;
     QString m_remoteVersion;
     QString m_remoteAssetsVersion;
+    QString m_remoteModsVersion;
     bool m_hasGaps = false;
     bool m_busy = false;
     QElapsedTimer m_timer;

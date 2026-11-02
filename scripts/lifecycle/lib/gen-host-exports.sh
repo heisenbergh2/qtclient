@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Regenerate cmake/host_exports.json from an IdleOT (or other) SIDE_MODULE.
+# Regenerate cmake/host_exports.json from a pack SIDE_MODULE.
 # Usage:
 #   scripts/lifecycle/lib/gen-host-exports.sh path/to/mod.wasm
 #   IDLEOT_MOD_WASM=… scripts/lifecycle/lib/gen-host-exports.sh
@@ -61,6 +61,9 @@ def wasm_env_imports(path: Path) -> list[str]:
                 if kind == 0:  # func
                     _, i = read_leb(data, i)
                     if mod == "env":
+                        # Pack-local STL instantiations stay in the SIDE_MODULE.
+                        if "qmlcomponents12RaycastStamp" in name:
+                            continue
                         imports.append(name)
                 elif kind == 1:  # table
                     i += 1
@@ -85,8 +88,10 @@ def wasm_env_imports(path: Path) -> list[str]:
                         or name.endswith("staticMetaObjectE")
                         or name == "_ZN7QString6_emptyE"
                     ):
-                        # Skip pack-local typeinfo/vtables (IdleOT raycast, …).
+                        # Skip pack-local typeinfo/vtables / product symbols.
                         if "qmlcomponents16TRaycastLighting" in name:
+                            continue
+                        if "qmlcomponents12RaycastStamp" in name:
                             continue
                         if "mods19WorldLightingDriver" in name:
                             continue

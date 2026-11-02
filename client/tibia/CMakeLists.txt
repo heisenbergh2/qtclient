@@ -757,22 +757,19 @@ if(EMSCRIPTEN)
   target_link_options(tibia PRIVATE "SHELL:-sFETCH=1")
   if(TIBIA_WASM_MAIN_MODULE)
     # Relocatable host so ModLoader can dlopen pack native/*.wasm (SIDE_MODULE).
-    # MAIN_MODULE=2 links on normal CI RAM; keepalive exports (host_exports.json)
-    # stop DCE of symbols IdleOT SIDE_MODULE imports. Do not use MAIN_MODULE=1
-    # (OOM) or EXPORT_ALL (wasm-ld cmdline blowup). -fPIC is project-wide.
+    # MAIN_MODULE=2 + host_exports.json keepalives stop DCE of symbols tip packs
+    # import. Do not use MAIN_MODULE=1 (OOM) or EXPORT_ALL (wasm-ld cmdline blowup).
     #
     # Qt finalize sets -sEXPORTED_FUNCTIONS=_main,__embind_initialize_bindings
-    # (Emscripten keeps only the last such flag). Soft #9 listed keepalives via
-    # EXPORTED_FUNCTIONS=@host_exports but Qt wiped them → CIP logo. Soft #12
-    # re-applied @host_exports after finalize, but em++ then hard-errored on
-    # undefined exported symbols (e.g. qRegisterResourceData not yet pulled
-    # from Qt .a). Soft #11's bulk LINKER:-u blew the cmdline.
+    # (Emscripten keeps only the last such flag). Soft #9–#14: do not re-apply
+    # EXPORTED_FUNCTIONS=@host_exports (undefined exports hard-fail) or nested
+    # LINKER:@rsp (dropped). Expand each keepalive as
+    # SHELL:-Wl,--undefined=SYM,--export-if-defined=SYM after finalize.
+    # ERROR_ON_UNDEFINED_SYMBOLS=0 for missing Qt pulls.
     #
-    # After finalize: leave Qt's two-symbol EXPORTED_FUNCTIONS alone. Soft #14's
-    # LINKER:@rsp was written at configure but never reached wasm-ld (nested @
-    # inside CMake's link rsp) → still 41 exports / canary fail. Expand each
-    # keepalive as SHELL:-Wl,--undefined=SYM,--export-if-defined=SYM (~100
-    # symbols; ARG_MAX-safe). ERROR_ON_UNDEFINED_SYMBOLS=0 for missing Qt pulls.
+    # side_module_abi_stubs.cpp defines EH symbols packs may import even when
+    # Qt wasm builds without exceptions (__cxa_throw).
+    target_sources(tibia PRIVATE wasm/side_module_abi_stubs.cpp)
     set(_tibia_host_exports "${TIBIA_ROOT}/cmake/host_exports.json")
     if(NOT EXISTS "${_tibia_host_exports}")
       message(FATAL_ERROR "tibia wasm: missing ${_tibia_host_exports} (run scripts/lifecycle/lib/gen-host-exports.sh)")

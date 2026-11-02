@@ -29,10 +29,10 @@ Tip loads **at most one** pack under `mods/<id>/`:
 | Mode | Pack |
 |------|------|
 | `--no-mods` / empty tip | none → real CipSoft (`https://www.tibia.com`, `https://static.tibia.com`) |
-| `--default-mod` | force tip `mods/default/` (ignore tip `idleot`) |
-| tip default | prefer `mods/idleot`, else `mods/default` |
+| `--default-mod` | force tip `mods/default/` |
+| tip default | highest-priority autoload `mods/<id>/` (one product slot) |
 
-**Product local path (single):** set `QTCLIENT_PACK` in root `.env`, then
+**Product local path (single):** set `QTCLIENT_PACK` in the umbrella `.env`, then
 `make qtclient client|wasm install` merges the pack into tip `mods/<id>/`.
 `make qtclient client run` loads that tip pack (never `QTCLIENT_MODS_DIR`).
 `QTCLIENT_MODS_DIR` remains a Soft escape hatch for out-of-tree experiments only.
@@ -52,9 +52,60 @@ Optional `urls` on `mod.json` merge into `LauncherEnv` (env > mod > `release_env
 | Pack | Role |
 |------|------|
 | [`mods/default`](../client/mods/default/mod.json) | Demo tip myAAC (`/login.php`); `make demo-pack` |
-| IdleOT `mod.json` | Portal CIP `/clientservices/*.php`; tip **replaces** `default` |
+| Product `mods/<id>/` | Author pack (native + QML + optional `brand.json`); tip **replaces** `default` |
 
 Urls-only packs omit `native`. Product packs always install into the tip.
+
+## Tip mods channel (CDN / launcher)
+
+Soft is a **generic CipSoft host**. Product content is a third tip install
+channel next to engine (`url`/`versionurl`) and assets (`assetsurl`), not a
+Soft fork:
+
+```text
+packages/<directoryname>/
+  Contents/…                 # CIP engine (unchanged)
+  mods/<id>/                 # ONE product pack (from mods.json)
+    brand.json               # optional launcher chrome
+    mod.json
+    native/mod.*
+    qml/…  overrides/…  resources/…  images/launcher/…
+  mods.json.sha256           # stamp written by PackageClient::installMods
+```
+
+`tibiametadata.json` `packages[].builds[]` may include:
+
+```json
+"modsurl": "…/mods-current/mods.json",
+"modsversionurl": "…/mods-current/mods.json.sha256"
+```
+
+Empty / omitted = stock CIP (no tip pack). `mods.json` mirrors `assets.json`
+(`files[]` with `localfile` under `mods/<id>/…`). Launcher Play requires
+engine + assets + **mods** stamps to match when the channel is present.
+
+### Atomic ModLoader
+
+When `mod.json` declares `native` (or the file is on disk):
+
+1. `dlopen` / `QLibrary` **first**
+2. On failure → fail closed (no identity / urls / QML registration)
+3. Only after native OK → register product chrome and backends
+
+Urls-only packs (no `native` key) may still register identity/urls without a
+shared library.
+
+### Author path (any product)
+
+1. Pin Soft SHA / pull `client-sdk`
+2. `qtclient_add_mod(my_pack …)` → `mods/my_pack/`
+3. Publish `mods.json` + lzma blobs on the CDN
+4. Point `tibiametadata` `modsurl` / `modsversionurl` at that tip
+5. Ship Soft host unchanged + that metadata URL
+
+Pack-local C++ types must stay inside the SIDE_MODULE (no Soft `env` imports
+for product symbols). Soft keepalives cover the public host ABI only
+(`cmake/host_exports.json` + canaries).
 
 Build with one CMake API:
 
@@ -73,16 +124,18 @@ Authors do **not** choose “plugin vs SIDE_MODULE”. The host loads packs with
 `ModLoader::loadFromDirectory` (startup only) via `QLibrary` + `qtclient_mod_entry`.
 
 On WASM the host is **`-sMAIN_MODULE=2`** plus **`cmake/host_exports.json`**
-keepalives so IdleOT `SIDE_MODULE` imports survive DCE at `dlopen`. Qt’s
+keepalives so pack `SIDE_MODULE` imports survive DCE at `dlopen`. Qt’s
 `qt_finalize_executable` owns `-sEXPORTED_FUNCTIONS=_main,__embind_initialize_bindings`
 (Emscripten keeps only the last such flag — Soft #9’s `@host_exports` wipe →
-CIP logo). Soft applies keepalives after finalize as per-symbol
+stock logo). Soft applies keepalives after finalize as per-symbol
 `-Wl,--undefined=SYM,--export-if-defined=SYM` (not nested `@rsp` — Soft #14’s
 response file never reached wasm-ld; not `EXPORTED_FUNCTIONS=@host_exports` —
 undefined exports hard-fail). Regenerate with
 `scripts/lifecycle/lib/gen-host-exports.sh path/to/mod.wasm`. CI canaries:
 `scripts/lifecycle/lib/check-host-exports-wasm.sh`. Do **not** use
 `MAIN_MODULE=1` (CI OOM) or `EXPORT_ALL` (wasm-ld cmdline blowup).
+`__cxa_throw` is stubbed in `client/tibia/wasm/side_module_abi_stubs.cpp` so
+libc++ EH imports from packs resolve on Soft tips that omit full EH.
 
 ```bash
 # next to client binary, or tip OPFS mods/
@@ -140,7 +193,7 @@ Brand identity comes from `mod.json` (`identity` + `priority`) via ModLoader.
 Packs register feature bootstraps only (do not re-register a second brand id).
 
 `QTCLIENT_MOD_INTERNAL=1` is a **temporary, non-public** migration bridge for
-in-tree IdleOT deep engine includes. New packs must use `mod_api_v1.h` only
+in-tree deep engine includes. New packs must use `mod_api_v1.h` only
 (see [`client/mods/_sample`](../client/mods/_sample)). Do not rely on
 `QTCLIENT_MOD_INTERNAL` in out-of-tree packs.
 
@@ -180,7 +233,7 @@ cached hooks (null-check only on the hot path):
 
 | Extension | Role |
 |-----------|------|
-| `WorldLightingDriver` | Optional lighting (IdleOT raycast) |
+| `WorldLightingDriver` | Optional lighting (pack raycast / custom) |
 | `WorldOverlayFactory` | QSGNode siblings after sprites |
 | `WorldFrameHooks` | Request shared outdoor/roof gather |
 | Sprite effect / HD hooks | `mods/registry` + `sprites/hdscale` |
@@ -205,7 +258,9 @@ Register mods, backends, WorldView drivers/overlays inside this function
 ## Client + pack (FDW-style)
 
 - **`Client: ci`** (public) publishes stock client artifacts (`client-<plat>:<sha>`, `client-sdk:<sha>`).
-- **idleot/release** (public) builds IdleOT MODULE/SIDE_MODULE packs after qtclient client artifacts are ready, merges `mods/idleot` into the tip, brands IdleOT, promotes CDN — private `idleot-client` is checked out with `RELEASE_TOKEN` (no private Actions compile).
+- Product release repos build MODULE/SIDE_MODULE packs against that SDK, emit
+  `mods.json` (+ optional tip bake of `mods/<id>/`), point `tibiametadata`
+  `modsurl` at the tip, and promote CDN. Soft never embeds a named product.
 - Local: `make qtclient client|wasm install` runs `make stock … install` then builds the pack from `QTCLIENT_PACK` and merges it next to the binary (`QTCLIENT_ENABLE_MODS=OFF` on the host). Run loads tip `mods/<id>` only. `make stock client run` / `make stock launcher run` pass `--no-mods`. Launcher brand is tip `mods/<id>/brand.json`; `make qtclient launcher install` stages it without recompiling Soft.
 
 ## Make CLI
@@ -217,7 +272,7 @@ make stock launcher run          # --no-mods (stock launcher + CIP chrome)
 make qtclient client install     # stock install, then QTCLIENT_PACK MODULE → tip
 make qtclient launcher install   # stock launcher install, then tip brand pack
 make qtclient wasm install       # stock wasm install, then SIDE_MODULE → tip
-make qtclient client run         # start the packed client; warns if mods/idleot is missing
+make qtclient client run         # start the packed client; warns if tip mods/<id> missing
 make stock demo-pack && make stock demo-run  # tip with mods/default + CipSoft assetsurl
 make stock client run ARGS='--default-mod'   # force myAAC tip pack
 make stock client run ARGS='--no-mods'       # real CipSoft URLs
