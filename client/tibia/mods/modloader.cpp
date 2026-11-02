@@ -222,9 +222,10 @@ QString resolveEnvPack(const QString& envPath)
 {
     if (envPath.isEmpty())
         return {};
-    if (QFile::exists(QDir(envPath).filePath(QStringLiteral("mod.json"))))
-        return envPath;
-    QDir dir(envPath);
+    const QString cleaned = QDir::cleanPath(envPath);
+    if (QFile::exists(QDir(cleaned).filePath(QStringLiteral("mod.json"))))
+        return cleaned;
+    QDir dir(cleaned);
     if (!dir.exists()) {
         qCWarning(lcModLoader) << "QTCLIENT_MODS_DIR missing" << envPath;
         return {};
@@ -282,11 +283,21 @@ QStringList ModLoader::tipModsRoots()
     QStringList roots;
     if (QCoreApplication::instance()) {
         const QDir app(QCoreApplication::applicationDirPath());
-        roots << app.filePath(QStringLiteral("mods"));
-        roots << app.absoluteFilePath(QStringLiteral("../Resources/mods"));
-        roots << app.absoluteFilePath(QStringLiteral("../mods"));
+        // cleanPath: on WASM applicationDirPath is often "/", so
+        // absoluteFilePath("../mods") becomes "/../mods". That still finds
+        // files via Qt but dlopen(SIDE_MODULE) fails on the non-normalized
+        // path (IdleOT pack → CIP login logo). Dedup after clean.
+        const QStringList raw = {
+            app.filePath(QStringLiteral("mods")),
+            app.absoluteFilePath(QStringLiteral("../Resources/mods")),
+            app.absoluteFilePath(QStringLiteral("../mods")),
+        };
+        for (const QString& r : raw) {
+            const QString cleaned = QDir::cleanPath(r);
+            if (!cleaned.isEmpty() && !roots.contains(cleaned))
+                roots << cleaned;
+        }
     }
-    roots.removeDuplicates();
     return roots;
 }
 
@@ -298,9 +309,10 @@ QStringList ModLoader::defaultRoots()
 
 bool ModLoader::loadFromDirectory(const QString& packDir, const ModContext* earlyCtx)
 {
+    const QString pack = QDir::cleanPath(packDir);
     PackMeta meta;
-    if (!readMeta(packDir, &meta)) {
-        qCWarning(lcModLoader) << "invalid mod.json in" << packDir;
+    if (!readMeta(pack, &meta)) {
+        qCWarning(lcModLoader) << "invalid mod.json in" << pack;
         return false;
     }
     if (meta.api < kMinApi || meta.api > kSupportedApi) {
@@ -323,6 +335,9 @@ bool ModLoader::loadFromDirectory(const QString& packDir, const ModContext* earl
     if (!meta.identity.displayName.empty()) {
         registerMod({ meta.identity, nullptr });
     }
+    // Prefer cleaned pack dir for native/QML paths (see tipModsRoots).
+    meta.dir = pack;
+
     if (!meta.urls.empty())
         registerModUrls(meta.urls);
 
@@ -332,12 +347,12 @@ bool ModLoader::loadFromDirectory(const QString& packDir, const ModContext* earl
     if (nativeExists(native)) {
         if (!loadNativeEntry(native, earlyCtx))
             return false;
-        qCInfo(lcModLoader) << "loaded mod" << meta.id << "from" << packDir;
+        qCInfo(lcModLoader) << "loaded mod" << meta.id << "from" << pack;
         return true;
     }
 
     if (meta.urlsOnly || !meta.urls.empty() || !meta.identity.displayName.empty()) {
-        qCInfo(lcModLoader) << "loaded urls/identity-only mod" << meta.id << "from" << packDir;
+        qCInfo(lcModLoader) << "loaded urls/identity-only mod" << meta.id << "from" << pack;
         return true;
     }
 
