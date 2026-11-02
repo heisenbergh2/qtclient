@@ -104,7 +104,12 @@ def side_module_imports(path: Path) -> list[tuple[str, str, int]]:
 
 
 def host_needed_from_pack(mod_wasm: Path, denylist: list[str] | None = None) -> list[str]:
-    """Soft MAIN_MODULE keepalives implied by a pack SIDE_MODULE."""
+    """Soft MAIN_MODULE keepalives implied by a pack SIDE_MODULE.
+
+    Skip pack-local denylist names and any import the SIDE_MODULE also exports
+    (Emscripten relocatable link lists self-defined symbols as env/GOT imports).
+    Soft must only keepalive symbols the pack does not define.
+    """
     needles = denylist if denylist is not None else load_denylist()
     skip = {
         "memory",
@@ -124,11 +129,12 @@ def host_needed_from_pack(mod_wasm: Path, denylist: list[str] | None = None) -> 
         "_otc_sync_shell_layout",
         "_otc_signal_dom_input",
     ]
+    defined = export_names(mod_wasm)
     imports: list[str] = []
     for mod, name, kind in side_module_imports(mod_wasm):
         if is_pack_local(name, needles):
             continue
-        if name in skip:
+        if name in skip or name in defined:
             continue
         if mod == "env" and kind in (0, 3):
             imports.append(name)
