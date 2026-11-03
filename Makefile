@@ -132,10 +132,9 @@ _cargo:
 	      linked="$$pack/client"; \
 	      test -f "$$linked/mod.json" || { echo "[qtclient] missing $$linked/mod.json" >&2; exit 1; }; \
 	      echo "[qtclient] linked tip $$comp $$life (QTCLIENT_LINKED_PACK=$$linked)"; \
-	      # Desktop product tip defaults DEV=1 (disk QML / F5). Wasm has no --dev. \
 	      if [[ -n "$(DEV)" ]]; then _dev="$(DEV)"; \
 	      elif [[ "$$comp" == client ]]; then _dev=1; \
-	      else _dev=; fi; \
+	      else _dev=""; fi; \
 	      STOCK_HOST=0 QTCLIENT_LINKED_PACK="$$linked" \
 	        COMP="$$comp" DEV="$$_dev" DEBUG="$(DEBUG)" \
 	        bash "$(LIFEDIR)/$$life/$$target.sh" && \

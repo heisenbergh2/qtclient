@@ -132,10 +132,29 @@ def desktop() -> int:
 
 
 def _wasm_src_dir() -> Path | None:
+    """Prefer build/tibia-wasm/bin (TOGGLE_BIN_FOLDER) over stale root symlinks.
+
+    Older cmake layouts left tibia.wasm at the build root (or a symlink into
+    client/tibia/). Linked-tip installs write the live tip under bin/; if we
+    pick the root first, make qtclient wasm install republishes the old Soft
+    and /play keeps SIDE_MODULE dlopen against native/mod.
+    """
     root = Path(os.environ.get("TIBIA_WASM_DIR", OTC / "build" / "tibia-wasm"))
-    if (root / "tibia.wasm").is_file():
-        return root
-    return None
+    candidates = (root / "bin", root)
+    best: Path | None = None
+    best_mtime = -1.0
+    for cand in candidates:
+        wasm = cand / "tibia.wasm"
+        if not wasm.is_file():
+            continue
+        try:
+            mtime = wasm.resolve().stat().st_mtime
+        except OSError:
+            mtime = wasm.stat().st_mtime
+        if mtime >= best_mtime:
+            best = cand
+            best_mtime = mtime
+    return best
 
 
 def _cip_stamp(fallback_path: Path) -> str:
@@ -301,6 +320,28 @@ def _resync_tip_pack(src_dir: Path, dest_dir: Path) -> None:
         shutil.rmtree(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     shutil.copytree(pack, out)
+    # Linked tip: never ship SIDE_MODULE leftovers onto the CDN floating tip.
+    for junk in ("native", "lib"):
+        junk_path = out / junk
+        if junk_path.exists():
+            shutil.rmtree(junk_path)
+    mod_json = out / "mod.json"
+    if mod_json.is_file():
+        try:
+            doc = json.loads(mod_json.read_text())
+        except (OSError, ValueError):
+            doc = None
+        if isinstance(doc, dict) and "native" in doc:
+            doc.pop("native", None)
+            mod_json.write_text(json.dumps(doc, indent=2) + "\n")
+    files_list = [
+        str(p.relative_to(out)).replace("\\", "/")
+        for p in sorted(out.rglob("*"))
+        if p.is_file() and not str(p.relative_to(out)).startswith(("native/", "lib/"))
+    ]
+    (dest_dir / "mods" / f"{pack.name}.files").write_text(
+        "\n".join(files_list) + ("\n" if files_list else "")
+    )
     print(f"[dev-cdn] tip pack -> {out}")
 
 

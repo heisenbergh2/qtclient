@@ -141,6 +141,9 @@ if [[ "$WASM_BUILD" -eq 1 ]]; then
   export VCPKG_TARGET_TRIPLET=wasm32-emscripten
 
   RCC="$(ls "$OTC"/data/things/*/graphics_resources.rcc 2>/dev/null | sort | tail -1 || true)"
+  # Flat CIP extract (make extract) lands at data/assets/.
+  [[ -z "$RCC" && -f "$OTC/data/assets/graphics_resources.rcc" ]] \
+    && RCC="$OTC/data/assets/graphics_resources.rcc"
   [[ -z "$RCC" ]] && echo "[tibia] WARN: no graphics_resources.rcc (make extract); the UI will have no art"
 
   BUILD_DIR="$OTC/build/tibia-wasm"
@@ -192,8 +195,8 @@ if [[ "$WASM_BUILD" -eq 1 ]]; then
     -DWASM_USE_WASM_EXCEPTIONS=OFF
     "$_mods_cmake"
     "$_launcher_mods_cmake"
-    "${_mods_list_cmake[@]}"
-    "${_linked_pack_cmake[@]}"
+    ${_mods_list_cmake[@]+"${_mods_list_cmake[@]}"}
+    ${_linked_pack_cmake[@]+"${_linked_pack_cmake[@]}"}
   )
   FP="$(
     {
@@ -385,7 +388,7 @@ if [[ -f "$HELPER" ]]; then
     -DVCPKG_TARGET_TRIPLET="$VCPKG_TARGET_TRIPLET" \
     "$_mods_cmake" \
     "$_launcher_mods_cmake" \
-    "${_linked_pack_cmake[@]}"
+    ${_linked_pack_cmake[@]+"${_linked_pack_cmake[@]}"}
 else
   cmake --preset "$PRESET" \
     -DTOGGLE_BIN_FOLDER=ON \
@@ -393,7 +396,7 @@ else
     -DVCPKG_TARGET_TRIPLET="$VCPKG_TARGET_TRIPLET" \
     "$_mods_cmake" \
     "$_launcher_mods_cmake" \
-    "${_linked_pack_cmake[@]}"
+    ${_linked_pack_cmake[@]+"${_linked_pack_cmake[@]}"}
 fi
 # Expected qtclient outputs (TOGGLE_BIN_FOLDER=ON) — no multi-path search.
 case "$(uname -s)" in

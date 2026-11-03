@@ -11,10 +11,48 @@ namespace {
 
 constexpr QLatin1StringView kQmlPrefix("/qt/qml/");
 
+bool isCipResourcePath(const QString& path)
+{
+    return path.startsWith(QLatin1String("/images/"))
+        || path.startsWith(QLatin1String("/animations/"));
+}
+
+/// Pack FS QML resolves absolute /images/… as file:///images/… — map into
+/// graphics_resources.rcc (same as DiskQmlInterceptor; required on wasm/release
+/// where TIBIA_QML_DISK is off).
+QUrl rewriteCipResourceUrl(const QUrl& url)
+{
+    QString path;
+    if (url.scheme() == QLatin1String("file")) {
+        path = url.toLocalFile();
+#if defined(Q_OS_WIN)
+        path.replace(QLatin1Char('\\'), QLatin1Char('/'));
+        if (path.size() >= 2 && path.at(1) == QLatin1Char(':'))
+            path = path.mid(2);
+#endif
+    } else if (url.scheme().isEmpty()) {
+        path = url.path();
+    } else {
+        return {};
+    }
+    if (!isCipResourcePath(path))
+        return {};
+    QUrl qrc;
+    qrc.setScheme(QStringLiteral("qrc"));
+    qrc.setPath(path);
+    return qrc;
+}
+
 } // namespace
 
 QUrl PackQmlInterceptor::intercept(const QUrl& url, const DataType type)
 {
+    if (const QUrl rewritten = rewriteCipResourceUrl(url); rewritten.isValid()) {
+        if (type == UrlString || url.scheme() == QLatin1String("file")
+            || url.scheme().isEmpty())
+            return rewritten;
+    }
+
     if (url.scheme() != QLatin1String("qrc"))
         return url;
     if (type != QmlFile && type != JavaScriptFile && type != UrlString)
