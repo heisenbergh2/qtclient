@@ -213,6 +213,7 @@ set(TIBIA_DEFAULT_CDN "")
 set(TIBIA_CLIENT_PACKAGE_DIR "Tibia.app")
 
 tibia_add_enabled_mods()
+tibia_apply_linked_pack_staging()
 
 target_compile_definitions(tibia PRIVATE
   "TIBIA_PRODUCT_NAME=\"${TIBIA_PRODUCT_NAME}\""

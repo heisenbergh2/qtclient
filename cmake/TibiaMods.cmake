@@ -108,3 +108,24 @@ function(tibia_add_enabled_mods)
   endif()
   set(QTCLIENT_ENABLED_MODS "${QTCLIENT_ENABLED_MODS}" PARENT_SCOPE)
 endfunction()
+
+# Must run from the directory that created target `tibia` (after
+# tibia_add_enabled_mods). Stages mods/<id>/ FS chrome next to the tip.
+function(tibia_apply_linked_pack_staging)
+  if(NOT TARGET tibia)
+    message(FATAL_ERROR "tibia_apply_linked_pack_staging: target tibia missing")
+  endif()
+  get_property(_stages GLOBAL PROPERTY QTCLIENT_MOD_TIP_STAGE)
+  foreach(_entry IN LISTS _stages)
+    string(REPLACE "|" ";" _parts "${_entry}")
+    list(GET _parts 0 _mod_id)
+    list(GET _parts 1 _outdir)
+    add_custom_command(TARGET tibia POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:tibia>/mods/${_mod_id}"
+      COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:tibia>/mods/${_mod_id}"
+      COMMAND ${CMAKE_COMMAND} -E copy_directory "${_outdir}" "$<TARGET_FILE_DIR:tibia>/mods/${_mod_id}"
+      COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:tibia>/mods/${_mod_id}/lib"
+      COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:tibia>/mods/${_mod_id}/native"
+      COMMENT "install ${_mod_id} FS pack next to tip")
+  endforeach()
+endfunction()

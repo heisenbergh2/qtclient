@@ -138,14 +138,10 @@ function(qtclient_add_mod MOD_ID)
       COMMENT "stage ${MOD_ID} resources")
   endif()
 
-  # Stage FS pack next to tip after tibia links (pack STATIC is a link dep of tibia).
-  add_custom_command(TARGET tibia POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:tibia>/mods/${MOD_ID}"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:tibia>/mods/${MOD_ID}"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${_outdir}" "$<TARGET_FILE_DIR:tibia>/mods/${MOD_ID}"
-    COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:tibia>/mods/${MOD_ID}/lib"
-    COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:tibia>/mods/${MOD_ID}/native"
-    COMMENT "install ${MOD_ID} FS pack next to tip")
+  # Defer tip FS staging: add_custom_command(TARGET tibia) only works in the
+  # directory that created `tibia` (mods/ is a subdirectory).
+  set_property(GLOBAL APPEND PROPERTY QTCLIENT_MOD_TIP_STAGE
+    "${MOD_ID}|${_outdir}")
 
   set(QTCLIENT_MOD_TARGET_${MOD_ID} "${_target}" PARENT_SCOPE)
   if(NOT TARGET qtclient_mods)
