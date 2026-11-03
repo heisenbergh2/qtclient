@@ -4,8 +4,11 @@
 // Do not abort the Soft tip — fail-closed ModLoader must leave stock chrome up.
 #if defined(__EMSCRIPTEN__)
 
+#include <cstddef>
+#include <cstdint>
 #include <cstdio>
-#include <cstring>
+
+#include <emscripten.h>
 
 extern "C" void __cxa_throw(void* thrown, void* /*tinfo*/, void (*dest)(void*))
 {
@@ -17,13 +20,20 @@ extern "C" void __cxa_throw(void* thrown, void* /*tinfo*/, void (*dest)(void*))
         dest(thrown);
 }
 
-// Soft may never call memcmp (inlined / DCE). IdleOT SIDE_MODULEs still import
-// it via env; --export-if-defined=memcmp only works if the symbol is linked.
-// Keep a live reference so host_exports.rsp can export it (Client:ci wasm).
-extern "C" {
-__attribute__((used)) static void* const qtclient_keepalive_memcmp =
-    reinterpret_cast<void*>(static_cast<int (*)(const void*, const void*, std::size_t)>(
-        &std::memcmp));
+// Soft never calls memcmp in a way that survives DCE/inlining as an exportable
+// wasm symbol (&std::memcmp keepalive was insufficient — Client:ci still missed
+// it). Provide a Soft-owned definition so host_exports --export=memcmp works and
+// IdleOT SIDE_MODULE env imports resolve. libc's memcmp is not linked when this
+// strong definition is present.
+extern "C" EMSCRIPTEN_KEEPALIVE int memcmp(const void* s1, const void* s2, std::size_t n)
+{
+    const auto* a = static_cast<const std::uint8_t*>(s1);
+    const auto* b = static_cast<const std::uint8_t*>(s2);
+    for (std::size_t i = 0; i < n; ++i) {
+        if (a[i] != b[i])
+            return a[i] < b[i] ? -1 : 1;
+    }
+    return 0;
 }
 
 #endif
