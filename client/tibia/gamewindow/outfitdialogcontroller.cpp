@@ -243,6 +243,21 @@ void TSelectOutfitDialogController::setWindowOptions(WindowOptions options)
     m_isMounted = options.mounted;
     m_randomMount = options.randomMount;
     m_windowOptions = std::move(options);
+    if (m_windowOptions.tryOutfitMode == 5) {
+        m_dialogMode = ConfigureShowOffSocket;
+        m_showSocket = m_windowOptions.podiumVisible;
+        m_showOutfit = m_windowOptions.podiumShowOutfit;
+        switch (m_windowOptions.podiumDirection) {
+            case 0: m_direction = TOutfitAppearanceInstanceQmlType::ECreatureLookDirection::NORTH; break;
+            case 1: m_direction = TOutfitAppearanceInstanceQmlType::ECreatureLookDirection::EAST; break;
+            case 3: m_direction = TOutfitAppearanceInstanceQmlType::ECreatureLookDirection::WEST; break;
+            default: m_direction = TOutfitAppearanceInstanceQmlType::ECreatureLookDirection::SOUTH; break;
+        }
+    } else {
+        m_dialogMode = SelectOutfit;
+    }
+    Q_EMIT dialogModeChanged();
+    Q_EMIT showChanged();
 }
 
 void TSelectOutfitDialogController::open(const Outfit& current, QList<TCustomiseCharacterModel::Entry> outfits,
@@ -359,6 +374,7 @@ void TSelectOutfitDialogController::onCharacterPresetsChanged()
 }
 
 /// CIP 0x100bdf0d0 (SelectOutfit): publishes SET_PLAYER_OUTFIT, then closes.
+/// Mode 5 (ConfigureShowOffSocket): publishes SET_SHOW_OFF_SOCKET_CONFIGURATION.
 void TSelectOutfitDialogController::setCharacterConfiguration(cip::tibia::qmlcomponents::TOutfitPresetQmlType* pOutfitPreset,
                                                               const int LookDirectionRaw, const bool ShowSocket,
                                                               const bool MountCharacter)
@@ -378,13 +394,25 @@ void TSelectOutfitDialogController::setCharacterConfiguration(cip::tibia::qmlcom
         outfit.setMountColors(mountColor->headColorIndex(), mountColor->torsoColorIndex(), mountColor->legsColorIndex(),
                               mountColor->detailColorIndex());
         outfit.setFamiliar(pOutfitPreset->summonID());
-        auto action = input::mutableClone(*input::makeAction(input::EGameAction::SET_PLAYER_OUTFIT));
-        action->outfit = outfit;
-        action->mountCharacter = MountCharacter;
-        action->randomMount = m_randomMount;
-        action->showSocket = ShowSocket;
-        action->lookDirection = LookDirectionRaw;
-        input::publish(action);
+        if (m_dialogMode == ConfigureShowOffSocket) {
+            auto action = input::mutableClone(*input::makeAction(input::EGameAction::SET_SHOW_OFF_SOCKET_CONFIGURATION));
+            action->outfit = outfit;
+            action->position = m_windowOptions.podiumPosition;
+            action->parameter = m_windowOptions.podiumItemId;
+            action->stackPosition = m_windowOptions.podiumStackpos;
+            action->lookDirection = LookDirectionRaw;
+            action->showSocket = ShowSocket;
+            action->enable = ShowSocket;
+            input::publish(action);
+        } else {
+            auto action = input::mutableClone(*input::makeAction(input::EGameAction::SET_PLAYER_OUTFIT));
+            action->outfit = outfit;
+            action->mountCharacter = MountCharacter;
+            action->randomMount = m_randomMount;
+            action->showSocket = ShowSocket;
+            action->lookDirection = LookDirectionRaw;
+            input::publish(action);
+        }
     }
     dialog()->close();
 }

@@ -426,17 +426,23 @@ void publish(const TGameActionPtr& action)
         if (action->outfit.getId() != 0)
             g_game.setHirelingOutfit(action->outfit, action->creatureId);
         break;
-    case A::SET_SHOW_OFF_SOCKET_CONFIGURATION:
-        if (action->outfit.getId() != 0 && action->object && action->object->isItem()) {
-            const ItemPtr item = action->object->static_self_cast<Item>();
+    case A::SET_SHOW_OFF_SOCKET_CONFIGURATION: {
+        // Outfit id 0 is valid (clear the displayed look / hide outfit).
+        const uint16_t itemId = action->object && action->object->isItem()
+            ? static_cast<uint16_t>(action->object->getId())
+            : static_cast<uint16_t>(action->parameter);
+        if (itemId != 0) {
             const uint8_t stackpos = action->stackPosition >= 0
                 ? static_cast<uint8_t>(action->stackPosition)
-                : static_cast<uint8_t>(item->getStackPos());
-            g_game.setShowOffSocketConfiguration(action->outfit, action->position, item->getId(), stackpos,
+                : (action->object && action->object->isItem()
+                       ? static_cast<uint8_t>(action->object->static_self_cast<Item>()->getStackPos())
+                       : 0);
+            g_game.setShowOffSocketConfiguration(action->outfit, action->position, itemId, stackpos,
                                                  static_cast<uint8_t>(action->lookDirection),
                                                  action->showSocket || action->enable ? 1 : 0);
         }
         break;
+    }
     case A::SET_CREATURE_PODIUM_CONFIGURATION: {
         const uint16_t itemId = action->object && action->object->isItem()
             ? static_cast<uint16_t>(action->object->getId())

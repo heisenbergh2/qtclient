@@ -121,8 +121,11 @@ void TInformationDialogs::hookOutfitDialog()
     });
 
     m_hooks.emplace_back("g_game", "onOutfitWindowOptions", [this](LuaObject*, const Args& args) {
-        TSelectOutfitDialogController::WindowOptions options{ .mounted = client::gamecore::argBool(args, 1),
-                                                              .randomMount = client::gamecore::argBool(args, 2) };
+        TSelectOutfitDialogController::WindowOptions options{
+            .mounted = client::gamecore::argBool(args, 1),
+            .randomMount = client::gamecore::argBool(args, 2),
+            .tryOutfitMode = static_cast<int>(client::gamecore::argInt(args, 0)),
+        };
         if (const auto* pairs = arg<std::vector<std::tuple<uint16_t, uint16_t>>>(args, 3))
             for (const auto& [male, female] : *pairs)
                 options.genderPairs.append({ male, female });
@@ -136,6 +139,13 @@ void TInformationDialogs::hookOutfitDialog()
         options.outfitOffers = offers(4);
         options.mountOffers = offers(5);
         options.summonOffers = offers(6);
+        if (const auto* pos = arg<Position>(args, 7))
+            options.podiumPosition = *pos;
+        options.podiumItemId = static_cast<uint16_t>(client::gamecore::argInt(args, 8));
+        options.podiumStackpos = static_cast<uint8_t>(client::gamecore::argInt(args, 9));
+        options.podiumVisible = client::gamecore::argInt(args, 10) != 0;
+        options.podiumShowOutfit = client::gamecore::argInt(args, 11) != 0;
+        options.podiumDirection = static_cast<uint8_t>(client::gamecore::argInt(args, 12));
         m_outfitDialog->setWindowOptions(std::move(options));
         return std::any{};
     });

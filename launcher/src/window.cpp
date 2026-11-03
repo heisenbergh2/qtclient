@@ -958,11 +958,16 @@ void LauncherWindow::start()
     refresh();
     considerSelfUpdate(metadata);
     const bool patch = QCoreApplication::arguments().contains(QStringLiteral("--patch"));
+    const bool forceSoft = QCoreApplication::arguments().contains(QStringLiteral("--show-launcher"))
+        || qEnvironmentVariableIntValue("QTCLIENT_FORCE_LAUNCHER") == 1;
     const QString local = localVersion();
     const bool assetsOk = m_remoteAssetsVersion.isEmpty()
         || localAssetsStamp() == m_remoteAssetsVersion;
-    if (patch && !m_remoteVersion.isEmpty() && local == m_remoteVersion && !m_hasGaps && assetsOk
-        && modsStampOk()) {
+    // Warm tip → auto-Play (CIP --patch when current). Soft chrome still used for
+    // Update / --show-launcher / QTCLIENT_FORCE_LAUNCHER=1.
+    if (!forceSoft && !m_remoteVersion.isEmpty() && local == m_remoteVersion && !m_hasGaps
+        && assetsOk && modsStampOk()) {
+        qInfo("launcher warm tip InstalledAndUsable — auto Play");
         play();
         return;
     }
@@ -1019,6 +1024,19 @@ void LauncherWindow::startAsync()
                     applyHint(tibia::app::parseHints(hintsBody));
                     refresh();
                     const QString local = localVersion();
+                    const bool forceSoft =
+                        QCoreApplication::arguments().contains(QStringLiteral("--show-launcher"))
+                        || qEnvironmentVariableIntValue("QTCLIENT_FORCE_LAUNCHER") == 1;
+                    const bool assetsOk = m_remoteAssetsVersion.isEmpty()
+                        || localAssetsStamp() == m_remoteAssetsVersion;
+                    const bool thingsOk = thingsPacksStampPresent();
+                    // Warm tip → remount game-only (same as Soft Play / portal auto-skip).
+                    if (!forceSoft && !m_remoteVersion.isEmpty() && local == m_remoteVersion
+                        && !m_hasGaps && assetsOk && thingsOk && modsStampOk()) {
+                        qInfo("launcher wasm warm tip InstalledAndUsable — auto Play remount");
+                        play();
+                        return;
+                    }
                     // CIP: auto-download only for NotInstalled when installautomatically is set.
                     if (m_package.installautomatically && local.isEmpty())
                         installIfNeededAsync(false);

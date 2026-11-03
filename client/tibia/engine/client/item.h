@@ -24,6 +24,7 @@
 
 #include "tibia/world/thing.h"
 #include "framework/core/declarations.h"
+#include "outfit.h"
 
 enum ItemAttr : uint8_t
 {
@@ -94,6 +95,16 @@ public:
     void setContainerAmmoTotal(const uint32_t total) { m_containerAmmoTotal = total; m_hasContainerAmmoTotal = true; }
     void setDecoItemId(const uint16_t id) { m_decoItemId = id; }
     void setManagedContainerFlags(const uint32_t lootFlags, const uint32_t obtainFlags) { m_lootFlags = lootFlags; m_obtainFlags = obtainFlags; }
+
+    /// Show-off socket (podium) look from AddItem — outfit may be creature or LookTypeEx item.
+    void setPodiumOutfit(const Outfit& outfit);
+    void clearPodiumOutfit();
+    void setPodiumDirection(uint8_t direction) { m_podiumDirection = direction; }
+    void setPodiumVisible(bool visible) { m_podiumVisible = visible; }
+    const Outfit& getPodiumOutfit() const { return m_podiumOutfit; }
+    uint8_t getPodiumDirection() const { return m_podiumDirection; }
+    bool isPodiumVisible() const { return m_podiumVisible; }
+    bool hasPodiumOutfit() const;
 
     int getCountOrSubType() { return m_countOrSubType; }
     int getSubType();
@@ -203,6 +214,10 @@ private:
     uint16_t m_decoItemId{ 0 };
     uint32_t m_lootFlags{ 0 };
     uint32_t m_obtainFlags{ 0 };
+
+    Outfit m_podiumOutfit;
+    uint8_t m_podiumDirection{ 2 }; // Otc::South
+    bool m_podiumVisible{ true };
 
     Color m_color{ Color::white };
 

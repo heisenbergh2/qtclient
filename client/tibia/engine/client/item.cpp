@@ -31,6 +31,19 @@
 #include "tibia/world/tile.h"
 #include "framework/core/clock.h"
 
+namespace {
+
+bool podiumOutfitDrawn(const Outfit& outfit)
+{
+    if (outfit.isCreature())
+        return outfit.getId() != 0;
+    if (outfit.isItem())
+        return outfit.getAuxId() != 0;
+    return outfit.hasMount();
+}
+
+}
+
 #ifdef FRAMEWORK_EDITOR
 #include <framework/core/binarytree.h>
 #include "itemtype.h"
@@ -262,12 +275,35 @@ void Item::setId(uint32_t id)
 
     m_clientId = id;
 
+    if (!isPodium())
+        clearPodiumOutfit();
+
     // Shader example on only items that can be marketed.
     /*
     if (isMarketable()) {
         m_shaderId = g_shaders.getShader("Outfit - Outline")->getId();
     }
     */
+}
+
+void Item::setPodiumOutfit(const Outfit& outfit)
+{
+    m_podiumOutfit = outfit;
+    if (m_podiumOutfit.isInvalid()) {
+        m_podiumOutfit.setCategory(m_podiumOutfit.getAuxId() > 0 ? ThingCategoryItem : ThingCategoryCreature);
+    }
+}
+
+void Item::clearPodiumOutfit()
+{
+    m_podiumOutfit = Outfit{};
+    m_podiumDirection = 2;
+    m_podiumVisible = true;
+}
+
+bool Item::hasPodiumOutfit() const
+{
+    return podiumOutfitDrawn(m_podiumOutfit);
 }
 
 ThingType* Item::getThingType() const {

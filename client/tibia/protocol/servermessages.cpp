@@ -3094,6 +3094,12 @@ void ProtocolGame::parseOpenOutfitWindow(const InputMessagePtr& msg) const
         const bool mounted = msg->getU8() != 0;
         bool randomMount = false;
         std::vector<std::tuple<uint16_t, uint16_t>> genderPairs;
+        Position podiumPos;
+        uint16_t podiumItemId = 0;
+        uint8_t podiumStackpos = 0;
+        uint8_t podiumVisible = 1;
+        uint8_t podiumShowOutfit = 1;
+        uint8_t podiumDirection = 2;
         if (tryOutfitMode == 0) {
             randomMount = msg->getU8() != 0;
         } else if (tryOutfitMode == 3) {
@@ -3106,18 +3112,19 @@ void ProtocolGame::parseOpenOutfitWindow(const InputMessagePtr& msg) const
                 genderPairs.emplace_back(male, female);
             }
             if (tryOutfitMode == 5) {
-                msg->getU16(); // podium position x, y, z
-                msg->getU16();
-                msg->getU8();
-                msg->getU16(); // podium item
-                msg->getU8(); // stack position
-                msg->getU8(); // podium visible
-                msg->getU8(); // show outfit
-                msg->getU8(); // look direction
+                podiumPos.x = msg->getU16();
+                podiumPos.y = msg->getU16();
+                podiumPos.z = msg->getU8();
+                podiumItemId = msg->getU16();
+                podiumStackpos = msg->getU8();
+                podiumVisible = msg->getU8();
+                podiumShowOutfit = msg->getU8();
+                podiumDirection = msg->getU8();
             }
         }
         g_gameEvents.callGlobalField("g_game", "onOutfitWindowOptions", tryOutfitMode, mounted, randomMount, genderPairs, outfitOffers,
-                                     mountOffers, familiarOffers);
+                                     mountOffers, familiarOffers, podiumPos, podiumItemId, podiumStackpos, podiumVisible,
+                                     podiumShowOutfit, podiumDirection);
     }
 
     std::vector<std::tuple<uint16_t, std::string>> wingList;
@@ -4440,27 +4447,53 @@ ItemPtr ProtocolGame::getItem(const InputMessagePtr& msg, int id)
 
     if (g_game.getFeature(Otc::GameThingPodium)) {
         if (item->isPodium()) {
+            Outfit podiumOutfit;
             const uint16_t looktype = msg->getU16();
             if (looktype != 0) {
-                msg->getU8(); // lookHead
-                msg->getU8(); // lookBody
-                msg->getU8(); // lookLegs
-                msg->getU8(); // lookFeet
-                msg->getU8(); // lookAddons
+                podiumOutfit.setCategory(ThingCategoryCreature);
+                const uint8_t head = msg->getU8();
+                const uint8_t body = msg->getU8();
+                const uint8_t legs = msg->getU8();
+                const uint8_t feet = msg->getU8();
+                const uint8_t addons = msg->getU8();
+                uint16_t id = looktype;
+                if (!g_things.isValidDatId(id, ThingCategoryCreature)) {
+                    g_logger.traceError("invalid podium looktype {}", id);
+                    id = 0;
+                }
+                podiumOutfit.setId(id);
+                podiumOutfit.setHead(head);
+                podiumOutfit.setBody(body);
+                podiumOutfit.setLegs(legs);
+                podiumOutfit.setFeet(feet);
+                podiumOutfit.setAddons(addons);
             } else if (g_game.getFeature(Otc::GameThingPodiumItemType)) {
-                msg->getU16(); // LookTypeEx
+                uint16_t lookTypeEx = msg->getU16();
+                if (lookTypeEx != 0) {
+                    if (!g_things.isValidDatId(lookTypeEx, ThingCategoryItem)) {
+                        g_logger.traceError("invalid podium looktypeex {}", lookTypeEx);
+                        lookTypeEx = 0;
+                    }
+                    if (lookTypeEx != 0) {
+                        podiumOutfit.setCategory(ThingCategoryItem);
+                        podiumOutfit.setAuxId(lookTypeEx);
+                    }
+                }
             }
 
             const uint16_t lookmount = msg->getU16();
             if (lookmount != 0) {
-                msg->getU8(); // lookHead
-                msg->getU8(); // lookBody
-                msg->getU8(); // lookLegs
-                msg->getU8(); // lookFeet
+                const uint8_t head = msg->getU8();
+                const uint8_t body = msg->getU8();
+                const uint8_t legs = msg->getU8();
+                const uint8_t feet = msg->getU8();
+                podiumOutfit.setMount(lookmount);
+                podiumOutfit.setMountColors(head, body, legs, feet);
             }
 
-            msg->getU8(); // direction
-            msg->getU8(); // visible (bool)
+            item->setPodiumOutfit(podiumOutfit);
+            item->setPodiumDirection(msg->getU8());
+            item->setPodiumVisible(msg->getU8() != 0);
         }
     }
 
@@ -7921,6 +7954,7 @@ void ProtocolGame::parseConfigureCreaturePodium(const InputMessagePtr& msg)
     const uint16_t lookType = msg->getU16();
     Outfit selected;
     if (lookType > 0) {
+        selected.setCategory(ThingCategoryCreature);
         selected.setId(lookType);
         selected.setHead(msg->getU8());
         selected.setBody(msg->getU8());
@@ -7928,7 +7962,11 @@ void ProtocolGame::parseConfigureCreaturePodium(const InputMessagePtr& msg)
         selected.setFeet(msg->getU8());
         selected.setAddons(msg->getU8());
     } else {
-        msg->getU16(); // Boss LookType placeholder when none selected
+        const uint16_t lookTypeEx = msg->getU16();
+        if (lookTypeEx != 0) {
+            selected.setCategory(ThingCategoryItem);
+            selected.setAuxId(lookTypeEx);
+        }
     }
     const uint16_t unknownListSize = msg->getU16();
     for (uint16_t i = 0; i < unknownListSize; ++i)

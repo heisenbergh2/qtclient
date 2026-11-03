@@ -47,7 +47,9 @@ QSize spriteSizeOf(ThingType* type)
 /// Opaque layout box for an instance (CIP: protobuf bounding_box_per_direction),
 /// in world pixels. Empty when the type has no boxes — caller falls back to the
 /// full sprite union. Matches SingleObjectAppearanceInstanceRenderer: sprite
-/// bottom-right on the field, box from the sprite's top-left.
+/// bottom-right on the field, box from the sprite's top-left — no displacement
+/// (OutfitPreviewPanel bakes outfit/mount shift into position; world-map draw
+/// applies displacement separately).
 QRect opaqueLayoutBounds(ThingType* type, const QPoint& fieldTopLeft, const int xPattern)
 {
     if (!type)
@@ -60,8 +62,7 @@ QRect opaqueLayoutBounds(ThingType* type, const QPoint& fieldTopLeft, const int 
     if (box.width() <= 0 || box.height() <= 0)
         return {};
     const QSize size = spriteSizeOf(type);
-    const QPoint spriteTopLeft = fieldTopLeft - QPoint(type->getDisplacementX(), type->getDisplacementY())
-        + QPoint(FieldSize - size.width(), FieldSize - size.height());
+    const QPoint spriteTopLeft = fieldTopLeft + QPoint(FieldSize - size.width(), FieldSize - size.height());
     return QRect(box.x(), box.y(), box.width(), box.height()).translated(spriteTopLeft);
 }
 
@@ -372,7 +373,12 @@ void TAppearanceInstanceRenderer::addSprites(ThingType* type, const QPoint& fiel
 {
     const auto& sprites = type->getSprites();
     const bool protobuf = g_game.isUsingProtobuf();
-    const QPoint anchor = fieldTopLeft - QPoint(type->getDisplacementX(), type->getDisplacementY()) + QPoint(FieldSize, FieldSize);
+    // CIP UI renderer (and SingleObjectAppearanceInstanceRenderer): sprite ends at
+    // the field's bottom-right. Do not subtract ThingType displacement here —
+    // OutfitPreviewPanel already places outfits/mounts at position − shift so
+    // they sit on socket elevation; applying displacement again pushed them NW
+    // of the podium (~shift, typically 8×8).
+    const QPoint anchor = fieldTopLeft + QPoint(FieldSize, FieldSize);
     const auto exists = [&](const uint32_t index) { return index < sprites.size() && (protobuf || sprites[index] != 0); };
     const auto add = [&](const int w, const int h, const QPoint& at, const QSize& size) {
         const uint32_t index = type->getSpriteIndex(w, h, 0, xPattern, yPattern, zPattern, phase);

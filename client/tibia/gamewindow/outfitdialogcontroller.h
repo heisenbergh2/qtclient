@@ -3,6 +3,7 @@
 #include "gamewindow/dialogmanager.h"
 
 #include <cip_gen.h>
+#include <client/position.h>
 
 #include <QJsonArray>
 
@@ -114,12 +115,21 @@ public:
     {
         bool mounted = false;
         bool randomMount = false;
+        /// Soft ChooseOutfit tryOutfitMode (0 own, 3 hireling, 5 show-off podium).
+        int tryOutfitMode = 0;
         /// Male/female outfit pairs (only sent with the both-genders modes).
         QList<QPair<int, int>> genderPairs;
         /// Store offer id per outfit / mount / summon of the message.
         QList<int> outfitOffers;
         QList<int> mountOffers;
         QList<int> summonOffers;
+        /// Mode 5 (ConfigureShowOffSocket) podium target.
+        Position podiumPosition;
+        uint16_t podiumItemId = 0;
+        uint8_t podiumStackpos = 0;
+        bool podiumVisible = true;
+        bool podiumShowOutfit = true;
+        uint8_t podiumDirection = 2;
     };
 
     /// The trailing options of the outfit window message.

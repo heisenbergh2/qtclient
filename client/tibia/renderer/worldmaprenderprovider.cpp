@@ -32,6 +32,7 @@
 #include <client/mapviewport.h>
 #include <tibia/world/missile.h>
 #include <tibia/assets/thingtype.h>
+#include <tibia/assets/things.h>
 #include <tibia/world/tile.h>
 #include <framework/core/clock.h>
 #include <framework/core/graphicalapplication.h>
@@ -919,13 +920,78 @@ void TWorldMapRenderProvider::addItem(const Order order, Item& item, const Point
         return;
     ThingType* type = typeOf(item);
     const auto highlight = m_mouseHighlight && m_mouseTarget.get() == &item ? SpriteRecord::MouseTarget : SpriteRecord::NoHighlight;
-    addSprites(order, type, dest, item.getPatternX(), item.getPatternY(), item.getPatternZ(), item.calculateAnimationPhase(),
-               false, 0, highlight);
-    if (type && type->hasLight()) {
-        // Classic LightMap only here. Raycast uses addFrame art lights (a centre duplicate
-        // was creature-like and leaked through walls).
-        addLight(dest + Point(FieldSize / 2), type->getLight().intensity, type->getLight().color);
+    // Show-off socket: PodiumVisible toggles the pedestal sprites; the creature
+    // look is independent (MonsterVisible is encoded by presence of look attrs).
+    const bool drawSocket = !item.isPodium() || item.isPodiumVisible();
+    if (drawSocket) {
+        addSprites(order, type, dest, item.getPatternX(), item.getPatternY(), item.getPatternZ(), item.calculateAnimationPhase(),
+                   false, 0, highlight);
+        if (type && type->hasLight()) {
+            // Classic LightMap only here. Raycast uses addFrame art lights (a centre duplicate
+            // was creature-like and leaked through walls).
+            addLight(dest + Point(FieldSize / 2), type->getLight().intensity, type->getLight().color);
+        }
     }
+    if (item.isPodium())
+        addPodiumOutfit(order, item, dest, highlight);
+}
+
+void TWorldMapRenderProvider::addPodiumOutfit(const Order order, Item& item, const Point& dest,
+                                             const SpriteRecord::Highlight highlight)
+{
+    if (!item.hasPodiumOutfit())
+        return;
+
+    const Outfit& outfit = item.getPodiumOutfit();
+    const int direction = std::clamp<int>(item.getPodiumDirection(), Otc::North, Otc::West);
+
+    if (outfit.isCreature()) {
+        ThingType* type = g_things.getRawThingType(outfit.getId(), ThingCategoryCreature);
+        if (!type)
+            return;
+
+        Point at = dest;
+        const bool mounted = outfit.hasMount();
+        if (mounted) {
+            if (ThingType* mount = g_things.getRawThingType(outfit.getMount(), ThingCategoryCreature)) {
+                at -= mount->getDisplacement();
+                int mountPhase = 0;
+                if (auto* idle = mount->getIdleAnimator())
+                    mountPhase = idle->getPhase();
+                addSprites(order, mount, at, direction, 0, 0, mountPhase, false, 0, highlight);
+                at += type->getDisplacement();
+            }
+        }
+
+        const int zPattern = mounted ? std::min(1, std::max(0, type->getNumPatternZ() - 1)) : 0;
+        int phase = 0;
+        if (auto* idle = type->getIdleAnimator())
+            phase = idle->getPhase();
+        const bool colorize = type->getLayers() > 1;
+        const uint32_t colors = colorize ? outfitColors(outfit) : 0;
+        for (int addon = 0; addon < type->getNumPatternY(); ++addon) {
+            if (addon > 0 && !(outfit.getAddons() & (1 << (addon - 1))))
+                continue;
+            addSprites(order, type, at, direction, addon, zPattern, phase, colorize, colors, highlight);
+        }
+        return;
+    }
+
+    if (!outfit.isItem())
+        return;
+
+    ThingType* type = g_things.getRawThingType(outfit.getAuxId(), ThingCategoryItem);
+    if (!type)
+        return;
+
+    int phase = 0;
+    if (auto* animator = type->getIdleAnimator())
+        phase = animator->getPhase();
+    else if (const int phases = type->getAnimationPhases(); phases > 1) {
+        const int ticks = g_gameConfig.getItemTicksPerFrame();
+        phase = static_cast<int>((g_clock.millis() % (static_cast<long long>(ticks) * phases)) / ticks);
+    }
+    addSprites(order, type, dest - type->getDisplacement(), 0, 0, 0, phase, false, 0, highlight);
 }
 
 void TWorldMapRenderProvider::addCreature(const Order order, Creature& creature, const Point& dest)

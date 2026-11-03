@@ -47,10 +47,11 @@ public:
 
 /// Draws a list of appearance instances placed in world pixels (QML
 /// AppearanceInstanceRenderer; CIP: TAppearanceInstanceRenderer, layout v54 0x1010b3610).
-/// An instance's position is the top-left of its field; its sprites are drawn as the
-/// world map draws them there. cameraPosition is the world pixel at the item's
-/// top-left; with center / shrinkToFit the opaque protobuf bounding boxes (else the
-/// sprite union) are centered / scaled down (never past scaleFactor) to fit.
+/// An instance's position is the top-left of its field; sprites end at the field's
+/// bottom-right (CIP UI / SingleObject — no ThingType displacement here; callers such
+/// as OutfitPreviewPanel bake shift into position). cameraPosition is the world pixel
+/// at the item's top-left; with center / shrinkToFit the opaque protobuf bounding
+/// boxes (else the sprite union) are centered / scaled down (never past scaleFactor).
 class TAppearanceInstanceRenderer : public cip::tibia::qmlcomponents::TAppearanceInstanceRenderer
 {
     Q_OBJECT

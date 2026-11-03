@@ -270,6 +270,11 @@ void TConfigureCreaturePodiumDialogController::onIndexChanged(const int Selected
     m_selectedIndex = SelectedIndex;
     Q_EMIT selectedIndexChanged();
 
+    if (SelectedIndex < 0) {
+        clearSelection();
+        return;
+    }
+
     const QModelIndex proxyIndex = m_proxy.index(SelectedIndex, 0);
     const QModelIndex sourceIndex = m_proxy.mapToSource(proxyIndex);
     if (const TBossSkinsModel::Entry* entry = m_skins.entryAt(sourceIndex.row())) {
@@ -292,14 +297,15 @@ void TConfigureCreaturePodiumDialogController::onCancelClicked()
 void TConfigureCreaturePodiumDialogController::onOkClicked()
 {
     if (g_game.isOnline()) {
+        const bool showCreature = m_showOutfit && m_chosenRace != 0;
         auto action = input::mutableClone(*input::makeAction(input::EGameAction::SET_CREATURE_PODIUM_CONFIGURATION));
-        action->creatureId = static_cast<uint32_t>(m_showOutfit ? m_chosenRace : 0);
+        action->creatureId = showCreature ? static_cast<uint32_t>(m_chosenRace) : 0;
         action->position = m_position;
         action->parameter = m_socketTypeID;
         action->stackPosition = m_stackpos;
         action->lookDirection = protocolFromLookDirection(m_direction);
         action->enable = m_showSocket;
-        action->showSocket = m_showOutfit;
+        action->showSocket = showCreature;
         input::publish(action);
     }
     dialog()->close();

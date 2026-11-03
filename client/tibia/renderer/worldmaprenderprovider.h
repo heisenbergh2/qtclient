@@ -196,6 +196,8 @@ private:
     const Tile* lyingObjectField(const Tile& tile) const;
     void addThing(const ThingPtr& thing, const Point& dest, uint8_t& elevation);
     void addItem(Order order, Item& item, const Point& dest);
+    /// Draw the show-off socket (podium) creature/outfit on top of the socket item.
+    void addPodiumOutfit(Order order, Item& item, const Point& dest, SpriteRecord::Highlight highlight);
     void addCreature(Order order, Creature& creature, const Point& dest);
     void addEffect(Order order, Effect& effect, const Point& dest);
     void addMissile(Missile& missile);
