@@ -31,14 +31,14 @@ jobs:
       - name: Linked-tip contracts (light)
         run: |
           set -euo pipefail
-          # No SIDE_MODULE / host_exports ship path.
+          # No SIDE_MODULE / host_exports ship path. Prefer grep (rg often absent).
           test ! -f cmake/host_exports.json
           test ! -f scripts/lifecycle/lib/write_host_exports_rsp.py
-          rg -q 'QTCLIENT_LINKED_PACK' cmake/TibiaMods.cmake
-          rg -q 'STATIC' cmake/QtClientMod.cmake
-          rg -q 'qtclient_add_mod' cmake/QtClientMod.cmake
-          rg -q 'QTCLIENT_HAS_LINKED_PACK' client/tibia/mods/modloader.cpp
-          if rg -q 'SHELL:-sMAIN_MODULE=2' client/tibia/CMakeLists.txt; then
+          grep -q 'QTCLIENT_LINKED_PACK' cmake/TibiaMods.cmake
+          grep -q 'STATIC' cmake/QtClientMod.cmake
+          grep -q 'qtclient_add_mod' cmake/QtClientMod.cmake
+          grep -q 'QTCLIENT_HAS_LINKED_PACK' client/tibia/mods/modloader.cpp
+          if grep -q 'SHELL:-sMAIN_MODULE=2' client/tibia/CMakeLists.txt; then
             echo "::error::MAIN_MODULE=2 must stay deleted (linked tip)" >&2
             exit 1
           fi
