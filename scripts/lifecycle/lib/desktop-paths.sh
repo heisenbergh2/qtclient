@@ -28,13 +28,12 @@ qtclient_desktop_preset() {
       return 2
       ;;
   esac
-  # Match build-tibia.sh: release default, DEV→*-dev, DEBUG→*-debug (DEBUG wins).
-  # Local qtclient runs default DEV=1 so they hit the same tree as umbrella builds.
-  # Windows has no *-dev preset — stay on release (or debug).
+  # Match scripts/lifecycle/build/desktop.sh: DEV unset → release; DEV=1 → *-dev;
+  # DEBUG=1 → *-debug (DEBUG wins). Windows has no *-dev preset — stay on release.
+  # (Do not default DEV=1 here — CI/Release pack builds release and then call
+  # find-client-bin; a silent macos-dev/linux-dev miss fails the pack job.)
   if [[ "$os" != windows ]]; then
-    case "${DEV:-1}" in 0|false|FALSE|no|NO|off|OFF) ;;
-      *) base=dev ;;
-    esac
+    case "${DEV:-}" in 1|true|TRUE|yes|YES|on|ON) base=dev ;; esac
   fi
   case "${DEBUG:-}" in 1|true|TRUE|yes|YES|on|ON) base=debug ;; esac
   printf '%s\n' "${os}-${base}"
