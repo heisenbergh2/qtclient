@@ -1,24 +1,15 @@
-# Mods/: optional packs with mod.json.
+# Mods/: optional packs with mod.json — STATIC-linked into tibia tip.
 #
-#   client/mods/<name>/mod.json
-#   client/mods/<name>/CMakeLists.txt   # build-time: qtclient_add_mod / brand.cmake
-#   launcher/mods/<name>/…              # launcher-only packs (chrome overlays)
+#   client/mods/<name>/mod.json + CMakeLists.txt
+#   -DQTCLIENT_LINKED_PACK=<pack>/client   # out-of-tree product (idleot-client)
 #
-# Discovery here is for **build-time** pack targets and brand.cmake only.
-# Runtime loading is ModLoader::loadFromDirectory (mods/<id>/ next to the client).
-# Linking product C++ into `tibia` is not required — packs are MODULE/SIDE_MODULE.
-#
-# Variables (QTCLIENT_* — same prefix as runtime QTCLIENT_MODS_DIR):
-#   QTCLIENT_ENABLE_MODS — when OFF, skip every mod (stock CIP only). Default ON.
-#   QTCLIENT_MODS_DIR    — client mods search path (default: ${TIBIA_ROOT}/client/mods)
-#   QTCLIENT_MODS        — semicolon list of mod folder names; empty = all non-template
-#
-# Underscore-prefixed dirs (_sample) are templates unless listed in QTCLIENT_MODS.
-# Stock CIP QML lives in client/upstream/, not under mods/.
+# Runtime FS chrome: mods/<id>/ next to the tip (qml/overrides). Native C++ is
+# linked at build time (qtclient_add_mod STATIC), not dlopen'd.
 
-option(QTCLIENT_ENABLE_MODS "Discover and link mods/ packs" ON)
+option(QTCLIENT_ENABLE_MODS "Discover and link mods/ packs into tibia" ON)
 set(QTCLIENT_MODS_DIR "${TIBIA_ROOT}/client/mods" CACHE PATH "Directory containing client/mods/<name>/")
 set(QTCLIENT_MODS "" CACHE STRING "Semicolon list of mod names to enable (empty = all non-template)")
+set(QTCLIENT_LINKED_PACK "" CACHE PATH "External pack client/ dir to STATIC-link into tibia")
 
 function(tibia_list_mods out_var)
   set(names "")
@@ -43,7 +34,6 @@ function(tibia_mod_is_template mod_name out_var)
   endif()
 endfunction()
 
-# Resolve which packs to build (brand + qtclient_add_mod). Sets QTCLIENT_ENABLED_MODS.
 function(tibia_resolve_enabled_mods)
   set(enabled "")
   if(NOT QTCLIENT_ENABLE_MODS)
@@ -83,17 +73,31 @@ endfunction()
 function(tibia_add_enabled_mods)
   tibia_resolve_enabled_mods()
   foreach(_qt_mod IN LISTS QTCLIENT_ENABLED_MODS)
-    # Optional brand.cmake overrides stock TIBIA_PRODUCT_* before the pack links.
     set(_brand "${QTCLIENT_MODS_DIR}/${_qt_mod}/brand.cmake")
     if(EXISTS "${_brand}")
       include("${_brand}")
     endif()
     tibia_add_mod_subdirectory("${_qt_mod}")
   endforeach()
-  if(QTCLIENT_ENABLE_MODS AND QTCLIENT_ENABLED_MODS STREQUAL "")
+
+  # Out-of-tree product pack (idleot-client/client) — same STATIC link path.
+  if(QTCLIENT_ENABLE_MODS AND QTCLIENT_LINKED_PACK)
+    get_filename_component(_linked "${QTCLIENT_LINKED_PACK}" ABSOLUTE)
+    if(EXISTS "${_linked}/CMakeLists.txt" AND EXISTS "${_linked}/mod.json")
+      message(STATUS "qtclient mods: QTCLIENT_LINKED_PACK=${_linked}")
+      set(_brand "${_linked}/brand.cmake")
+      if(EXISTS "${_brand}")
+        include("${_brand}")
+      endif()
+      add_subdirectory("${_linked}" "${CMAKE_CURRENT_BINARY_DIR}/mods/_linked_pack")
+    else()
+      message(FATAL_ERROR "QTCLIENT_LINKED_PACK=${QTCLIENT_LINKED_PACK} needs CMakeLists.txt + mod.json")
+    endif()
+  endif()
+
+  if(QTCLIENT_ENABLE_MODS AND QTCLIENT_ENABLED_MODS STREQUAL "" AND NOT QTCLIENT_LINKED_PACK)
     message(STATUS "qtclient mods: enabled, none discovered (stock CIP)")
   endif()
-  # add_subdirectory / include ran in this function scope — push brand out to caller.
   set(TIBIA_PRODUCT_NAME "${TIBIA_PRODUCT_NAME}" PARENT_SCOPE)
   set(TIBIA_PRODUCT_ORG "${TIBIA_PRODUCT_ORG}" PARENT_SCOPE)
   set(TIBIA_PRODUCT_URL "${TIBIA_PRODUCT_URL}" PARENT_SCOPE)

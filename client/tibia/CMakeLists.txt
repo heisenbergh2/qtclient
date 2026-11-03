@@ -32,12 +32,6 @@ include("${TIBIA_ROOT}/cmake/QtClientHost.cmake")
 # packaging leaves this OFF so QML stays embedded + qmlcachegen'd.
 option(TIBIA_QML_DISK "Load CIP/mod QML from disk with hot reload (dev)" OFF)
 
-# WASM host must be relocatable MAIN_MODULE so ModLoader can dlopen pack native/.
-if(EMSCRIPTEN OR WASM)
-  option(TIBIA_WASM_MAIN_MODULE "Build tibia.wasm as Emscripten MAIN_MODULE for runtime packs" ON)
-endif()
-
-
 # Project FindOpenGL predates Qt's OpenGL lookup; Qt must use CMake's.
 set(_tibia_module_path "${CMAKE_MODULE_PATH}")
 list(REMOVE_ITEM CMAKE_MODULE_PATH "${TIBIA_ROOT}/cmake")
@@ -755,65 +749,7 @@ if(EMSCRIPTEN)
     "TIBIA_LAUNCHER_VERSION=\"embedded\"")
   target_link_libraries(tibia PRIVATE Qt6::Widgets)
   target_link_options(tibia PRIVATE "SHELL:-sFETCH=1")
-  if(TIBIA_WASM_MAIN_MODULE)
-    # Relocatable host so ModLoader can dlopen pack native/*.wasm (SIDE_MODULE).
-    # MAIN_MODULE=2 + host_exports.json keepalives stop DCE of symbols tip packs
-    # import. Do not use MAIN_MODULE=1 (OOM) or EXPORT_ALL (wasm-ld cmdline blowup).
-    #
-    # Qt finalize sets -sEXPORTED_FUNCTIONS=_main,__embind_initialize_bindings
-    # (Emscripten keeps only the last such flag). Soft #9–#14: do not re-apply
-    # EXPORTED_FUNCTIONS=@host_exports (undefined exports hard-fail) or nested
-    # LINKER:@rsp (dropped). Pass keepalives as emcc-level SHELL:@host_exports.rsp
-    # (one -Wl,--undefined=SYM,--export-if-defined=SYM per line) after finalize.
-    # ERROR_ON_UNDEFINED_SYMBOLS=0 for missing Qt pulls.
-    #
-    # side_module_abi_stubs.cpp defines EH symbols packs may import even when
-    # Qt wasm builds without exceptions (__cxa_throw).
-    target_sources(tibia PRIVATE wasm/side_module_abi_stubs.cpp)
-    set(_tibia_host_exports "${TIBIA_ROOT}/cmake/host_exports.json")
-    if(NOT EXISTS "${_tibia_host_exports}")
-      message(FATAL_ERROR "tibia wasm: missing ${_tibia_host_exports} (run scripts/lifecycle/lib/gen-host-exports.sh)")
-    endif()
-    set_property(TARGET tibia PROPERTY TIBIA_HOST_EXPORTS_JSON "${_tibia_host_exports}")
-    target_link_options(tibia PRIVATE
-      "SHELL:-sMAIN_MODULE=2"
-      "SHELL:-sERROR_ON_UNDEFINED_SYMBOLS=0")
-    function(tibia_apply_wasm_host_export_flags)
-      if(NOT TARGET tibia)
-        return()
-      endif()
-      get_property(_exports TARGET tibia PROPERTY TIBIA_HOST_EXPORTS_JSON)
-      if(NOT _exports OR NOT EXISTS "${_exports}")
-        message(FATAL_ERROR "tibia_apply_wasm_host_export_flags: missing host_exports.json")
-      endif()
-      set(_rsp "${CMAKE_CURRENT_BINARY_DIR}/host_exports.rsp")
-      # Generate rsp at defer time so ~2k keepalives do not explode argv
-      # (Soft #14 nested LINKER:@rsp was dropped; emcc SHELL:@ works).
-      if(NOT Python3_EXECUTABLE)
-        find_package(Python3 COMPONENTS Interpreter REQUIRED)
-      endif()
-      set(ENV{HOST_EXPORTS_JSON} "${_exports}")
-      set(ENV{HOST_EXPORTS_RSP} "${_rsp}")
-      execute_process(
-        COMMAND "${Python3_EXECUTABLE}" "${TIBIA_ROOT}/scripts/lifecycle/lib/write_host_exports_rsp.py"
-        RESULT_VARIABLE _rsp_rc
-        OUTPUT_VARIABLE _rsp_out
-        ERROR_VARIABLE _rsp_err
-      )
-      if(NOT _rsp_rc EQUAL 0 OR NOT EXISTS "${_rsp}")
-        message(FATAL_ERROR
-          "tibia_apply_wasm_host_export_flags: failed to write ${_rsp}\n${_rsp_out}${_rsp_err}")
-      endif()
-      file(SIZE "${_rsp}" _rsp_bytes)
-      if(_rsp_bytes EQUAL 0)
-        message(FATAL_ERROR "tibia_apply_wasm_host_export_flags: empty ${_rsp}")
-      endif()
-      target_link_options(tibia PRIVATE "SHELL:@${_rsp}")
-      message(STATUS "tibia wasm: host_exports keepalive via SHELL:@${_rsp} (${_rsp_out})")
-    endfunction()
-    cmake_language(DEFER CALL tibia_apply_wasm_host_export_flags)
-    message(STATUS "tibia wasm: MAIN_MODULE=2 + deferred host_exports rsp (SIDE_MODULE keepalive)")
-  endif()
+  # Product packs STATIC-link into this tip — no MAIN_MODULE / host_exports.
 
   # Dev shell: the art pack is preloaded; release builds get it from the CDN sync.
   set(TIBIA_WASM_GRAPHICS_RCC "" CACHE FILEPATH "graphics_resources.rcc to preload into the wasm build")
@@ -871,5 +807,5 @@ if(IOS)
   target_compile_definitions(tibia PRIVATE TIBIA_MOBILE=1)
 endif()
 
-# Fat host import ABI for runtime packs (desktop MODULE + wasm SIDE_MODULE).
+# Tip host finalize (STATIC packs link into tibia; no ENABLE_EXPORTS ABI).
 qtclient_host_finalize()

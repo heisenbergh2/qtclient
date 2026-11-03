@@ -129,20 +129,23 @@ if [[ "$WASM_BUILD" -eq 1 ]]; then
 
   HELPER="$MONOREPO/scripts/cmake-configure-if-needed.sh"
   # Always pass one -D each — empty "${arr[@]}" trips `set -u`.
-  # STOCK_HOST=1 / QTCLIENT_ENABLE_MODS=0 → qtclient MAIN_MODULE only (IdleOT pack separate).
+  # STOCK_HOST=1 → stock CIP tip. Product tip: QTCLIENT_LINKED_PACK=…/client.
   _mods_cmake=-DQTCLIENT_ENABLE_MODS=ON
   if [[ "${STOCK_HOST:-0}" == "1" || "${QTCLIENT_ENABLE_MODS:-}" =~ ^(0|OFF|off|false|FALSE)$ ]]; then
     _mods_cmake=-DQTCLIENT_ENABLE_MODS=OFF
   fi
-  # OFF keeps the launcher CipSoft-branded. IdleOT launcher install sets ON.
   _launcher_mods_cmake=-DQTCLIENT_ENABLE_LAUNCHER_MODS=OFF
   case "${QTCLIENT_ENABLE_LAUNCHER_MODS:-}" in
     1|ON|on|true|TRUE|yes|YES) _launcher_mods_cmake=-DQTCLIENT_ENABLE_LAUNCHER_MODS=ON ;;
   esac
-  # Optional: QTCLIENT_MODS=_sample (underscore templates need an explicit list).
   _mods_list_cmake=()
   if [[ -n "${QTCLIENT_MODS:-}" ]]; then
     _mods_list_cmake=(-DQTCLIENT_MODS="${QTCLIENT_MODS}")
+  fi
+  _linked_pack_cmake=()
+  if [[ -n "${QTCLIENT_LINKED_PACK:-}" ]]; then
+    _linked_pack_cmake=(-DQTCLIENT_LINKED_PACK="${QTCLIENT_LINKED_PACK}")
+    _mods_cmake=-DQTCLIENT_ENABLE_MODS=ON
   fi
   WASM_CMAKE_ARGS=(
     -G Ninja -S "$OTC" -B "$BUILD_DIR"
@@ -167,13 +170,15 @@ if [[ "$WASM_BUILD" -eq 1 ]]; then
     "$_mods_cmake"
     "$_launcher_mods_cmake"
     "${_mods_list_cmake[@]}"
+    "${_linked_pack_cmake[@]}"
   )
   FP="$(
     {
-    echo "tibia-wasm-vcpkg-v2-fpic"
+    echo "tibia-wasm-vcpkg-v3-linked-tip"
     echo "stock-host=${STOCK_HOST:-0}"
     echo "mods=${QTCLIENT_ENABLE_MODS:-ON}"
     echo "mods-list=${QTCLIENT_MODS:-}"
+    echo "linked-pack=${QTCLIENT_LINKED_PACK:-}"
     echo "launcher-mods=${QTCLIENT_ENABLE_LAUNCHER_MODS:-OFF}"
     printf '%s\n' "${WASM_CMAKE_ARGS[@]}"
     shasum -a 256 "$OTC/vcpkg.json" "$OTC/vcpkg-configuration.json" 2>/dev/null || true
@@ -185,14 +190,8 @@ if [[ "$WASM_BUILD" -eq 1 ]]; then
     cmake "${WASM_CMAKE_ARGS[@]}"
   fi
 
+  # STATIC packs link into tibia — one tip target.
   cmake --build "$BUILD_DIR" --target tibia -j"$JOBS"
-  # Packs are MODULE/SIDE_MODULE — not linked into tibia; build them explicitly
-  # unless this is a stock qtclient host (IdleOT SIDE_MODULE is a separate artifact).
-  if [[ "${STOCK_HOST:-0}" != "1" && ! "${QTCLIENT_ENABLE_MODS:-}" =~ ^(0|OFF|off|false|FALSE)$ ]]; then
-    if grep -qE '(^|/)qtclient_mods:' "$BUILD_DIR/build.ninja" 2>/dev/null; then
-      cmake --build "$BUILD_DIR" --target qtclient_mods -j"$JOBS"
-    fi
-  fi
   cmake --build "$BUILD_DIR" --target launcher -j"$JOBS"
 
   # Prefer tibia.* (CDN / portal). If a stale OUTPUT_NAME=client build left
@@ -220,10 +219,6 @@ if [[ "$WASM_BUILD" -eq 1 ]]; then
     exit 1
   fi
   OUT_DIR="$(dirname "$OUT_HTML")"
-  # MAIN_MODULE=2: attach .sig on GOT helpers before compress/publish.
-  if [[ -f "$OUT_DIR/tibia.js" ]]; then
-    bash "$HERE/../package/patch-tibia-js-main-module.sh" "$OUT_DIR/tibia.js"
-  fi
   for f in tibia.js tibia.wasm; do
     src="$OUT_DIR/$f"
     [[ -f "$src" ]] || continue
@@ -322,29 +317,33 @@ if [[ -f "$BUILD_DIR/build.ninja" ]] && pgrep -f "ninja.*-C $BUILD_DIR|ninja -C 
   echo "[tibia] WARN: another ninja/cmake build may already be using $BUILD_DIR — wait for it instead of starting a second one" >&2
 fi
 HELPER="$MONOREPO/scripts/cmake-configure-if-needed.sh"
+_mods_cmake=-DQTCLIENT_ENABLE_MODS=ON
+if [[ "${STOCK_HOST:-0}" == "1" || "${QTCLIENT_ENABLE_MODS:-}" =~ ^(0|OFF|off|false|FALSE)$ ]]; then
+  _mods_cmake=-DQTCLIENT_ENABLE_MODS=OFF
+fi
+_launcher_mods_cmake=-DQTCLIENT_ENABLE_LAUNCHER_MODS=OFF
+case "${QTCLIENT_ENABLE_LAUNCHER_MODS:-}" in
+  1|ON|on|true|TRUE|yes|YES) _launcher_mods_cmake=-DQTCLIENT_ENABLE_LAUNCHER_MODS=ON ;;
+esac
+_linked_pack_cmake=()
+if [[ -n "${QTCLIENT_LINKED_PACK:-}" ]]; then
+  _linked_pack_cmake=(-DQTCLIENT_LINKED_PACK="${QTCLIENT_LINKED_PACK}")
+  _mods_cmake=-DQTCLIENT_ENABLE_MODS=ON
+fi
 FP="$(
   {
-    echo "tibia-desktop-vcpkg-v1"
+    echo "tibia-desktop-vcpkg-v2-linked-tip"
     echo "preset=$PRESET"
     echo "qt=$QT_DESKTOP"
     echo "triplet=$VCPKG_TARGET_TRIPLET"
     echo "qml-disk=$DEV_BUILD"
     echo "stock-host=${STOCK_HOST:-0}"
     echo "mods=${QTCLIENT_ENABLE_MODS:-ON}"
+    echo "linked-pack=${QTCLIENT_LINKED_PACK:-}"
     echo "launcher-mods=${QTCLIENT_ENABLE_LAUNCHER_MODS:-OFF}"
     shasum -a 256 "$OTC/CMakePresets.json" "$OTC/vcpkg.json" 2>/dev/null || true
   } | shasum -a 256 2>/dev/null | awk '{print $1}'
 )"
-# Always pass one -D each — empty "${arr[@]}" trips `set -u`.
-_mods_cmake=-DQTCLIENT_ENABLE_MODS=ON
-if [[ "${STOCK_HOST:-0}" == "1" || "${QTCLIENT_ENABLE_MODS:-}" =~ ^(0|OFF|off|false|FALSE)$ ]]; then
-  _mods_cmake=-DQTCLIENT_ENABLE_MODS=OFF
-fi
-# OFF keeps the launcher CipSoft-branded. IdleOT launcher install sets ON.
-_launcher_mods_cmake=-DQTCLIENT_ENABLE_LAUNCHER_MODS=OFF
-case "${QTCLIENT_ENABLE_LAUNCHER_MODS:-}" in
-  1|ON|on|true|TRUE|yes|YES) _launcher_mods_cmake=-DQTCLIENT_ENABLE_LAUNCHER_MODS=ON ;;
-esac
 if [[ -f "$HELPER" ]]; then
   bash "$HELPER" "$BUILD_DIR" "$FP" -- \
     cmake --preset "$PRESET" \
@@ -352,14 +351,16 @@ if [[ -f "$HELPER" ]]; then
     -DCMAKE_PREFIX_PATH="$QT_DESKTOP" \
     -DVCPKG_TARGET_TRIPLET="$VCPKG_TARGET_TRIPLET" \
     "$_mods_cmake" \
-    "$_launcher_mods_cmake"
+    "$_launcher_mods_cmake" \
+    "${_linked_pack_cmake[@]}"
 else
   cmake --preset "$PRESET" \
     -DTOGGLE_BIN_FOLDER=ON \
     -DCMAKE_PREFIX_PATH="$QT_DESKTOP" \
     -DVCPKG_TARGET_TRIPLET="$VCPKG_TARGET_TRIPLET" \
     "$_mods_cmake" \
-    "$_launcher_mods_cmake"
+    "$_launcher_mods_cmake" \
+    "${_linked_pack_cmake[@]}"
 fi
 # Expected qtclient outputs (TOGGLE_BIN_FOLDER=ON) — no multi-path search.
 case "$(uname -s)" in
@@ -374,18 +375,10 @@ case "$(uname -s)" in
 esac
 if [[ "$LAUNCHER_BUILD" -eq 1 ]]; then
   cmake --build --preset "$PRESET" --target launcher -j"$JOBS"
-  # Drop cmake's default-tree copy so only bin/launcher.app remains.
   rm -rf "$BUILD_DIR/launcher/src/launcher.app" "$BUILD_DIR/launcher/src/launcher"
   BIN="$LAUNCHER_BIN"
 else
   cmake --build --preset "$PRESET" --target tibia -j"$JOBS"
-  # Stock qtclient skips in-tree packs (IdleOT builds out-of-tree against client-sdk).
-  if [[ "${STOCK_HOST:-0}" != "1" && ! "${QTCLIENT_ENABLE_MODS:-}" =~ ^(0|OFF|off|false|FALSE)$ ]]; then
-    if grep -qE '(^|/)qtclient_mods:' "$BUILD_DIR/build.ninja" 2>/dev/null; then
-      cmake --build --preset "$PRESET" --target qtclient_mods -j"$JOBS"
-    fi
-  fi
-  # Drop pre-OUTPUT_NAME / non-bin leftovers so only build/<preset>/bin/… remains.
   rm -rf "$BUILD_DIR/client/tibia/tibia.app" "$BUILD_DIR/client/tibia/client.app"
   rm -f "$BUILD_DIR/client/tibia/tibia" "$BUILD_DIR/client/tibia/client" \
         "$BUILD_DIR/bin/tibia" "$BUILD_DIR/bin/tibia.exe"

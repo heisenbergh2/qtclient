@@ -4,13 +4,14 @@
 #
 # Usage:
 #   check-tip-pack-presence.sh --tip <dir> [--id idleot] [--cdn <dist/cdn>]
-#   check-tip-pack-presence.sh --tip <dir> --require-native
+#   check-tip-pack-presence.sh --tip <dir> --require-native   # legacy SIDE_MODULE
+# Linked tip: FS chrome only (mod.json + qml/overrides) — default.
 set -euo pipefail
 
 TIP=""
 CDN=""
 PACK_ID="idleot"
-REQUIRE_NATIVE=1
+REQUIRE_NATIVE=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in

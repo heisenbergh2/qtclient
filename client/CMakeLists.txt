@@ -539,12 +539,7 @@ elseif(WASM)
       "Emscripten -sINITIAL_MEMORY= bytes (fixed WASM heap)")
 
   set(_WASM_LONGJMP_MODE "emscripten")
-  # Shell + IdleOT SIDE_MODULE keepalives — see cmake/host_exports.json
-  # (regen: scripts/lifecycle/lib/gen-host-exports.sh).
-  set(_WASM_HOST_EXPORTS "${CMAKE_SOURCE_DIR}/cmake/host_exports.json")
-  if(NOT EXISTS "${_WASM_HOST_EXPORTS}")
-    message(FATAL_ERROR "WASM: missing ${_WASM_HOST_EXPORTS}")
-  endif()
+  # Linked tip: product packs STATIC into tibia (no MAIN_MODULE / host_exports).
   set(_WASM_CXX_FLAGS "-O3 -ffast-math -msimd128 -frtti -pthread -fexceptions")
   if(WASM_USE_WASM_EXCEPTIONS)
     set(_WASM_LONGJMP_MODE "wasm")
@@ -594,9 +589,6 @@ elseif(WASM)
           # setCanvasElementSize: browserwindow applyShellLayout (Debug ASSERTIONS
           # abort on typeof Module.setCanvasElementSize when the symbol is missing).
           -sEXPORTED_RUNTIME_METHODS=ccall,setCanvasElementSize,FS,IDBFS
-          # Do NOT pass EXPORTED_FUNCTIONS=@host_exports.json here (Soft #9: Qt
-          # finalize overwrites / undefined hard-fail). SIDE_MODULE keepalives are
-          # SHELL:@host_exports.rsp on target tibia after finalize (tibia/CMakeLists).
           # Must list every key shell.html assigns on Module (Emscripten abort if extra).
           -sINCOMING_MODULE_JS_API=[locateFile,preRun,postRun,print,printErr,canvas,setStatus,monitorRunDependencies,onAbort]
           -sFORCE_FILESYSTEM

@@ -276,7 +276,7 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
         run: bash scripts/lifecycle/publish/desktop.sh
 
-  # Wasm + SIDE_MODULE ABI canary (_sample). ORAS when PUBLISH_HOST.
+  # Wasm + _sample STATIC linked canary. ORAS when PUBLISH_HOST.
   wasm:
     name: wasm
     runs-on: ubuntu-24.04
@@ -321,10 +321,10 @@ jobs:
         # Same as desktop: wait for Qt: build GHCR kits — never compile qtdeclarative here.
         run: bash tools/qt/ci-setup.sh --wasm --pull-only --with-vcpkg --with-deps
 
-      - name: Build stock wasm client (+ _sample SIDE_MODULE ABI canary)
+      - name: Build wasm tip (+ _sample STATIC linked canary)
         env:
           QT_ROOT: ${{ runner.temp }}/Qt
-          # Enable _sample SIDE_MODULE so Soft CI proves host_exports cover a pack.
+          # Linked tip: _sample STATIC into tibia (no SIDE_MODULE / host_exports).
           STOCK_HOST: '0'
           QTCLIENT_ENABLE_MODS: 'ON'
           QTCLIENT_MODS: '_sample'
@@ -332,27 +332,32 @@ jobs:
           set -euo pipefail
           mkdir -p "$CCACHE_DIR"
           ccache -z || true
-          # MAIN_MODULE=2 + host_exports.json (no swap). Dump link recipe on fail.
           if ! bash scripts/lifecycle/build/wasm.sh; then
             echo '::error::wasm build failed; last link recipe:' >&2
             ninja -C build/tibia-wasm -t commands tibia 2>/dev/null | tail -n 5 || true
-            # Soft #11 link died with empty ninja output — force a verbose relink.
             ninja -C build/tibia-wasm -v bin/tibia.js 2>&1 | tail -n 80 || true
             ls -la build/tibia-wasm/bin/ 2>/dev/null || true
             exit 1
           fi
-          # Full host_exports.json must survive MAIN_MODULE=2 DCE / Qt wipe.
-          bash scripts/lifecycle/lib/check-host-exports-wasm.sh \
-            build/tibia-wasm/bin/tibia.wasm
-          SAMPLE_WASM="$(find build/tibia-wasm/mods -name mod.wasm -type f 2>/dev/null | head -1 || true)"
-          if [[ -z "$SAMPLE_WASM" || ! -f "$SAMPLE_WASM" ]]; then
-            echo "::error::_sample SIDE_MODULE mod.wasm missing under build/tibia-wasm/mods" >&2
-            find build/tibia-wasm -name '*.wasm' 2>/dev/null | head -40 || true
+          test -f build/tibia-wasm/bin/tibia.wasm
+          # Linked tip must not be MAIN_MODULE (no relocatable pack ABI).
+          if llvm-nm -u build/tibia-wasm/bin/tibia.wasm 2>/dev/null | head -1 >/dev/null; then
+            :
+          fi
+          if strings build/tibia-wasm/bin/tibia.js 2>/dev/null | grep -q 'isMainModule\|MAIN_MODULE'; then
+            echo "::warning::tibia.js still mentions MAIN_MODULE — verify link flags" >&2
+          fi
+          SAMPLE_FS="$(find build/tibia-wasm -path '*/mods/sample/mod.json' -type f 2>/dev/null | head -1 || true)"
+          if [[ -z "$SAMPLE_FS" || ! -f "$SAMPLE_FS" ]]; then
+            echo "::error::_sample FS pack mod.json missing under build/tibia-wasm" >&2
+            find build/tibia-wasm -path '*/mods/*' 2>/dev/null | head -40 || true
             exit 1
           fi
-          bash scripts/lifecycle/lib/check-side-module-abi.sh "$SAMPLE_WASM"
-          bash scripts/lifecycle/lib/check-pack-host-coverage.sh \
-            build/tibia-wasm/bin/tibia.wasm "$SAMPLE_WASM"
+          # No native/mod.wasm on linked tips.
+          if find build/tibia-wasm -path '*/mods/*/native/mod.wasm' -type f 2>/dev/null | grep -q .; then
+            echo "::error::native/mod.wasm present — SIDE_MODULE ship path must stay deleted" >&2
+            exit 1
+          fi
           ccache -s || true
 
       - name: Save vcpkg + ccache

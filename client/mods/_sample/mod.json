@@ -7,7 +7,6 @@
   "priority": 50,
   "QTCLIENT_MOD_API": 1,
   "qmlModule": "sample",
-  "native": "native/mod",
   "identity": {
     "displayName": "Sample",
     "organization": "qtclient",
@@ -15,5 +14,5 @@
     "bundleId": "com.qtclient.sample",
     "cdnBaseUrl": ""
   },
-  "description": "SDK sample pack. Build with qtclient_add_mod; drop mods/sample/ next to client."
+  "description": "SDK sample pack. STATIC-linked into Soft tip via qtclient_add_mod; FS chrome under mods/sample/."
 }

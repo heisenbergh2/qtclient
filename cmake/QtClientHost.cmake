@@ -1,34 +1,14 @@
-# QtClient host ABI for runtime packs (desktop MODULE + WASM SIDE_MODULE).
+# QtClient tip host — packs STATIC-link into `tibia` (no MODULE/SIDE_MODULE ABI).
 #
-# IdleOT-sized packs import most of the client symbol surface. Rather than a
-# second copy of every TU, the fat host is the `tibia` / `client` executable
-# with ENABLE_EXPORTS (generates an import library packs link against). On
-# Emscripten the binary is MAIN_MODULE=2 with cmake/host_exports.json
-# keepalives so SIDE_MODULE packs resolve symbols at dlopen (plain
-# MAIN_MODULE=2 DCE drops unreferenced ABI; MAIN_MODULE=1 OOMs in CI).
-#
-# Consumers:
-#   find_package(QtClient REQUIRED)
-#   target_link_libraries(my_mod PRIVATE QtClient::Host)
-# Or in-tree: include(QtClientHost.cmake) after the tibia target exists.
+# Consumers still see QtClient::Host as includes + link-against-tibia for
+# in-tree STATIC packs (via qtclient_add_mod). Out-of-tree packs rebuild the
+# tip with -DQTCLIENT_LINKED_PACK=… rather than shipping a separate .wasm/.so.
 
 include_guard(GLOBAL)
 
 function(qtclient_host_finalize)
   if(NOT TARGET tibia)
     message(FATAL_ERROR "qtclient_host_finalize: tibia target missing")
-  endif()
-
-  # Executable exports symbols for MODULE / SIDE_MODULE packs.
-  set_target_properties(tibia PROPERTIES ENABLE_EXPORTS ON)
-  if(APPLE AND NOT EMSCRIPTEN)
-    target_link_options(tibia PRIVATE "LINKER:-export_dynamic")
-  elseif(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT WASM)
-    target_link_options(tibia PRIVATE "LINKER:--export-dynamic")
-  elseif(EMSCRIPTEN)
-    # Host ABI for SIDE_MODULE: MAIN_MODULE=2 + host_exports.json on the tibia
-    # link line (see client/tibia/CMakeLists.txt). Never EXPORT_ALL (cmdline
-    # blowup) and never MAIN_MODULE=1 (CI OOM).
   endif()
 
   if(NOT TARGET qtclient_host)
@@ -43,10 +23,9 @@ function(qtclient_host_finalize)
     add_library(QtClient::Host ALIAS qtclient_host)
   endif()
 
-  # Build-tree package for out-of-tree packs (idleot-client).
   set(_qtclient_config_dir "${CMAKE_BINARY_DIR}/cmake")
   file(MAKE_DIRECTORY "${_qtclient_config_dir}")
-  file(WRITE "${_qtclient_config_dir}/QtClientConfig.cmake" "# Generated — build tree
+  file(WRITE "${_qtclient_config_dir}/QtClientConfig.cmake" "# Generated — build tree (linked tip)
 if(NOT TARGET QtClient::Host)
   add_library(QtClient::Host INTERFACE IMPORTED)
   set_target_properties(QtClient::Host PROPERTIES
@@ -57,5 +36,5 @@ set(QtClient_FOUND TRUE)
 set(QTCLIENT_ROOT \"${TIBIA_ROOT}\")
 include(\"\${CMAKE_CURRENT_LIST_DIR}/../cmake/QtClientMod.cmake\" OPTIONAL)
 ")
-  message(STATUS "qtclient_host: ENABLE_EXPORTS on tibia (pack import ABI)")
+  message(STATUS "qtclient_host: tip links STATIC packs (no ENABLE_EXPORTS / MAIN_MODULE)")
 endfunction()

@@ -34,7 +34,7 @@ APP_DEFAULT_COMPONENT := client
 
 .PHONY: help setup sync tibia-sync extract fetch-assets qt \
 	publish-assets cdn local-cdn tibia-dump-smoke tibia-android tibia-ios \
-	demo-pack demo-run host-exports \
+	demo-pack demo-run \
 	$(APP_COMPONENTS) $(APP_LIFECYCLES) _cargo
 
 # Host platform for demo pack (override: make demo-pack DEMO_PLATFORM=linux-x64).
@@ -55,11 +55,11 @@ help:
 ifeq ($(PRODUCT),1)
 	@echo "  PRODUCT=1 mode (umbrella: make qtclient …)"
 	@echo "  QTCLIENT_PACK=$(QTCLIENT_PACK)"
-	@echo "  make client install   stock install, then pack MODULE → tip"
+	@echo "  make client install   Soft tip with QTCLIENT_LINKED_PACK + FS mods/<id>"
 	@echo "  make launcher install stock launcher install, then tip brand"
-	@echo "  make wasm install     stock wasm install, then SIDE_MODULE → tip"
-	@echo "  make package          pack MODULE only (independent of stock)"
-	@echo "  make client run       start tip-packed client (mods/<id> next to binary)"
+	@echo "  make wasm install     Soft wasm tip with QTCLIENT_LINKED_PACK + FS mods/<id>"
+	@echo "  make package          Soft tip build with QTCLIENT_LINKED_PACK"
+	@echo "  make client run       start linked tip (mods/<id> FS chrome next to binary)"
 	@echo "  make link             optional FS symlink (not required for run)"
 	@echo "  Stock-only smoke: umbrella make stock client run"
 else
@@ -71,12 +71,11 @@ else
 	@echo "  make launcher run     start stock qtclient launcher (--no-mods; ARGS=…)"
 	@echo "  make demo-pack      stage demo Release (our package + CipSoft assetsurl + mods/default)"
 	@echo "  make demo-run       launcher with demo tip (Play → tip client + mods/default)"
-	@echo "  make wasm build       MAIN_MODULE (needs make qt WASM=1)"
+	@echo "  make wasm build       Soft wasm tip (needs make qt WASM=1; optional LINKED_PACK)"
 	@echo "  make wasm install     build + stage into dist/cdn for portal /play"
 	@echo "  make client install   build + point dist/cdn desktop slice at this binary"
 	@echo "  make package          PACKAGE_KIND=sdk|desktop|wasm (client-sdk ships cipgen)"
 	@echo "  make publish          ORAS push PACKAGE_OUT to ghcr.io/…/client-*"
-	@echo "  make host-exports     regen cmake/host_exports.json from IDLEOT_MOD_WASM / arg"
 	@echo "  Product (umbrella): make qtclient … with QTCLIENT_PACK in .env"
 	@echo "  make clean            wipe client+launcher+wasm build trees"
 	@echo "  make client clean     wipe desktop client trees only"
@@ -130,22 +129,20 @@ _cargo:
 	  case "$$life" in \
 	    build|install) \
 	      case "$$comp" in client) target=desktop ;; *) target="$$comp" ;; esac; \
-	      echo "[qtclient] stock $$comp $$life (PRODUCT pack on top)"; \
-	      STOCK_HOST=1 COMP="$$comp" DEV="$(DEV)" DEBUG="$(DEBUG)" \
+	      linked="$$pack/client"; \
+	      test -f "$$linked/mod.json" || { echo "[qtclient] missing $$linked/mod.json" >&2; exit 1; }; \
+	      echo "[qtclient] linked tip $$comp $$life (QTCLIENT_LINKED_PACK=$$linked)"; \
+	      STOCK_HOST=0 QTCLIENT_LINKED_PACK="$$linked" \
+	        COMP="$$comp" DEV="$(DEV)" DEBUG="$(DEBUG)" \
 	        bash "$(LIFEDIR)/$$life/$$target.sh"; \
 	      COMP="$$comp" DEV="$(if $(DEV),$(DEV),1)" DEBUG="$(DEBUG)" \
 	        STOCK_ALREADY=1 QTCLIENT_ROOT="$(HERE)" \
-	        QTCLIENT_CLIENT_SDK="$(CLIENT_SDK)" \
 	        bash "$$pack/scripts/lifecycle/install/$$target.sh" ;; \
 	    package) \
-	      args=(); \
-	      [[ "$$comp" == "wasm" ]] && args+=(--wasm); \
-	      if [[ -n "$(CLIENT_SDK)" ]]; then \
-	        args+=(--client-sdk "$(CLIENT_SDK)"); \
-	      else \
-	        args+=(--qtclient "$(HERE)"); \
-	      fi; \
-	      bash "$$pack/scripts/lifecycle/package/module.sh" "$${args[@]}" ;; \
+	      echo "[qtclient] PRODUCT package: build Soft tip with QTCLIENT_LINKED_PACK=$$pack/client"; \
+	      STOCK_HOST=0 QTCLIENT_LINKED_PACK="$$pack/client" \
+	        COMP="$$comp" DEV="$(DEV)" DEBUG="$(DEBUG)" \
+	        bash "$(LIFEDIR)/build/$$([[ $$comp == client ]] && echo desktop || echo $$comp).sh" ;; \
 	    run) \
 	      case "$$comp" in client) target=desktop ;; *) target="$$comp" ;; esac; \
 	      COMP="$$comp" QTCLIENT_ROOT="$(HERE)" \
@@ -242,18 +239,6 @@ tibia-ios:
 
 cdn:
 	@python3 "$(HERE)/tools/publish/local_cdn.py" --desktop --wasm
-
-# Soft-owned WasmHostAbi: regenerate keepalives from a pack SIDE_MODULE.
-# Usage: make host-exports IDLEOT_MOD_WASM=path/to/mod.wasm
-#    or: make host-exports MOD_WASM=path/to/mod.wasm
-host-exports:
-	@mod="$(or $(IDLEOT_MOD_WASM),$(MOD_WASM))"; \
-	  if [[ -z "$$mod" || ! -f "$$mod" ]]; then \
-	    echo "[host-exports] set IDLEOT_MOD_WASM=…/native/mod.wasm (or MOD_WASM=)" >&2; \
-	    exit 1; \
-	  fi; \
-	  bash "$(HERE)/scripts/lifecycle/lib/gen-host-exports.sh" "$$mod"; \
-	  echo "[host-exports] commit cmake/host_exports.json and rebuild Soft wasm"
 
 publish-assets:
 	@python3 "$(HERE)/tools/publish/cli.py" assets $(ARGS)

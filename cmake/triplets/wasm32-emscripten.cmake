@@ -14,8 +14,7 @@ elseif(DEFINED ENV{EMSDK} AND NOT "${VCPKG_CHAINLOAD_TOOLCHAIN_FILE}")
 endif()
 
 # Match Qt wasm_multithread (SJLJ / emscripten longjmp), pthread + atomics.
-# -fPIC: tibia.wasm is MAIN_MODULE=2; SIDE_MODULE packs + relocatable link need PIC
-# objects in every static archive (libpng, protobuf, …).
+# -fPIC: static archives (libpng, protobuf, …) into the linked tip.
 set(VCPKG_C_FLAGS "-pthread -matomics -mbulk-memory -fPIC -sSUPPORT_LONGJMP=emscripten")
 set(VCPKG_CXX_FLAGS "-pthread -matomics -mbulk-memory -fPIC -sSUPPORT_LONGJMP=emscripten")
 set(VCPKG_LINKER_FLAGS "-pthread -matomics -mbulk-memory")

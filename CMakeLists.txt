@@ -53,8 +53,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten"
         OR _TIBIA_EMSCRIPTEN_COMPILER
         OR WASM)
     set(THREADS_PREFER_PTHREAD_FLAG ON)
-    # MAIN_MODULE=2 / SIDE_MODULE need relocatable objects. CMake's
-    # POSITION_INDEPENDENT_CODE does not inject -fPIC for Emscripten.
+    # -fPIC: static archives + pthread atomics (CMake PIC flag skips Emscripten).
     add_compile_options(-pthread -matomics -mbulk-memory -fPIC)
     add_link_options(-pthread -matomics -mbulk-memory)
 endif()

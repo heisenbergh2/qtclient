@@ -4,21 +4,18 @@
 
 #include <QtGlobal>
 
-#if defined(__EMSCRIPTEN__)
-#  include <emscripten.h>
-#  define QTCLIENT_MOD_KEEPALIVE EMSCRIPTEN_KEEPALIVE
-#else
-#  define QTCLIENT_MOD_KEEPALIVE
-#endif
+/// Pack native entry — linked into the tip (STATIC). Soft calls this when
+/// QTCLIENT_HAS_LINKED_PACK is defined; FS mods/<id>/ still supplies QML/urls.
+using QtClientModEntryFn = void (*)(const tibia::mods::ModContext* earlyCtx);
+
+#define QTCLIENT_MOD_ENTRY_NAME "qtclient_mod_entry"
 
 #if defined(_WIN32)
 #  define QTCLIENT_MOD_EXPORT extern "C" Q_DECL_EXPORT
 #else
-#  define QTCLIENT_MOD_EXPORT extern "C" QTCLIENT_MOD_KEEPALIVE __attribute__((visibility("default")))
+#  define QTCLIENT_MOD_EXPORT extern "C" __attribute__((visibility("default")))
 #endif
 
-/// Pack native entry. Same symbol on desktop shared libs and wasm SIDE_MODULE.
-/// Called once after QLibrary::load / dlopen — register mods, drivers, overlays here.
-using QtClientModEntryFn = void (*)(const tibia::mods::ModContext* earlyCtx);
-
-#define QTCLIENT_MOD_ENTRY_NAME "qtclient_mod_entry"
+#if defined(QTCLIENT_HAS_LINKED_PACK)
+QTCLIENT_MOD_EXPORT void qtclient_mod_entry(const tibia::mods::ModContext* earlyCtx);
+#endif
