@@ -22,6 +22,7 @@ qtclient_desktop_preset() {
   case "$(uname -s)" in
     Darwin) os=macos ;;
     Linux) os=linux ;;
+    MINGW*|MSYS*|CYGWIN*) os=windows ;;
     *)
       echo "[desktop-paths] unsupported host: $(uname -s)" >&2
       return 2
@@ -29,9 +30,12 @@ qtclient_desktop_preset() {
   esac
   # Match build-tibia.sh: release default, DEV→*-dev, DEBUG→*-debug (DEBUG wins).
   # Local qtclient runs default DEV=1 so they hit the same tree as umbrella builds.
-  case "${DEV:-1}" in 0|false|FALSE|no|NO|off|OFF) ;;
-    *) base=dev ;;
-  esac
+  # Windows has no *-dev preset — stay on release (or debug).
+  if [[ "$os" != windows ]]; then
+    case "${DEV:-1}" in 0|false|FALSE|no|NO|off|OFF) ;;
+      *) base=dev ;;
+    esac
+  fi
   case "${DEBUG:-}" in 1|true|TRUE|yes|YES|on|ON) base=debug ;; esac
   printf '%s\n' "${os}-${base}"
 }
@@ -61,6 +65,10 @@ qtclient_desktop_paths() {
     Linux)
       QTCLIENT_CLIENT_BIN="$bin/client"
       QTCLIENT_LAUNCHER_BIN="$bin/launcher"
+      ;;
+    MINGW*|MSYS*|CYGWIN*)
+      QTCLIENT_CLIENT_BIN="$bin/client.exe"
+      QTCLIENT_LAUNCHER_BIN="$bin/launcher.exe"
       ;;
     *)
       echo "[desktop-paths] unsupported host: $(uname -s)" >&2

@@ -10,7 +10,8 @@ source "$HERE/desktop-paths.sh"
 
 OTC="${1:-${TIBIA_CLIENT_DIR:-$(cd "$HERE/../../.." && pwd)}}"
 qtclient_desktop_paths "$OTC"
-if [[ ! -x "$QTCLIENT_CLIENT_BIN" ]]; then
+# Windows .exe may not report -x under Git Bash — accept -e.
+if [[ ! -e "$QTCLIENT_CLIENT_BIN" ]]; then
   echo "[find-client-bin] missing $QTCLIENT_CLIENT_BIN (preset=$QTCLIENT_PRESET)" >&2
   exit 1
 fi

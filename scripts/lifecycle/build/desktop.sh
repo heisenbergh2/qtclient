@@ -302,6 +302,13 @@ case "$(uname -s)" in
     [[ "$DEBUG_BUILD" -eq 1 ]] && PRESET=linux-debug
     [[ "$DEV_BUILD" -eq 1 ]] && PRESET=linux-dev
     ;;
+  MINGW*|MSYS*|CYGWIN*)
+    # Git Bash / MSYS on Windows (Actions windows-2022). Soft CI uses the same
+    # windows-release preset; DEV maps to release (no windows-dev preset).
+    export VCPKG_TARGET_TRIPLET="${VCPKG_TARGET_TRIPLET:-x64-windows-static-md}"
+    PRESET=windows-release
+    [[ "$DEBUG_BUILD" -eq 1 ]] && PRESET=windows-debug
+    ;;
   *)
     echo "[tibia] unsupported host: $(uname -s)"
     exit 1
@@ -368,6 +375,10 @@ case "$(uname -s)" in
     CLIENT_BIN="$BUILD_DIR/bin/client.app/Contents/MacOS/client"
     LAUNCHER_BIN="$BUILD_DIR/bin/launcher.app/Contents/MacOS/launcher"
     ;;
+  MINGW*|MSYS*|CYGWIN*)
+    CLIENT_BIN="$BUILD_DIR/bin/client.exe"
+    LAUNCHER_BIN="$BUILD_DIR/bin/launcher.exe"
+    ;;
   *)
     CLIENT_BIN="$BUILD_DIR/bin/client"
     LAUNCHER_BIN="$BUILD_DIR/bin/launcher"
@@ -384,7 +395,7 @@ else
         "$BUILD_DIR/bin/tibia" "$BUILD_DIR/bin/tibia.exe"
   BIN="$CLIENT_BIN"
 fi
-if [[ ! -x "$BIN" ]]; then
+if [[ ! -e "$BIN" ]]; then
   echo "[tibia] build finished but missing $BIN" >&2
   exit 1
 fi
