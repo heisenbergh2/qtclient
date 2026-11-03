@@ -24,7 +24,9 @@ pack_sdk() {
   cp -a "$OTC/scripts/lifecycle/lib/gen-host-exports.sh" "$DEST/scripts/lifecycle/lib/"
   cp -a "$OTC/scripts/lifecycle/lib/check-side-module-abi.sh" "$DEST/scripts/lifecycle/lib/"
   cp -a "$OTC/scripts/lifecycle/lib/check-pack-host-coverage.sh" "$DEST/scripts/lifecycle/lib/"
+  cp -a "$OTC/scripts/lifecycle/lib/check-pack-host-exports-json.sh" "$DEST/scripts/lifecycle/lib/"
   cp -a "$OTC/scripts/lifecycle/lib/check-host-exports-wasm.sh" "$DEST/scripts/lifecycle/lib/"
+  cp -a "$OTC/scripts/lifecycle/lib/check-tip-pack-presence.sh" "$DEST/scripts/lifecycle/lib/"
   cp -a "$OTC/scripts/lifecycle/lib/write_host_exports_rsp.py" "$DEST/scripts/lifecycle/lib/"
   cp -a "$OTC/cmake/host_exports.json" "$DEST/cmake/" 2>/dev/null || true
 

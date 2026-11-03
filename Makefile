@@ -34,7 +34,7 @@ APP_DEFAULT_COMPONENT := client
 
 .PHONY: help setup sync tibia-sync extract fetch-assets qt \
 	publish-assets cdn local-cdn tibia-dump-smoke tibia-android tibia-ios \
-	demo-pack demo-run \
+	demo-pack demo-run host-exports \
 	$(APP_COMPONENTS) $(APP_LIFECYCLES) _cargo
 
 # Host platform for demo pack (override: make demo-pack DEMO_PLATFORM=linux-x64).
@@ -76,6 +76,7 @@ else
 	@echo "  make client install   build + point dist/cdn desktop slice at this binary"
 	@echo "  make package          PACKAGE_KIND=sdk|desktop|wasm (client-sdk ships cipgen)"
 	@echo "  make publish          ORAS push PACKAGE_OUT to ghcr.io/…/client-*"
+	@echo "  make host-exports     regen cmake/host_exports.json from IDLEOT_MOD_WASM / arg"
 	@echo "  Product (umbrella): make qtclient … with QTCLIENT_PACK in .env"
 	@echo "  make clean            wipe client+launcher+wasm build trees"
 	@echo "  make client clean     wipe desktop client trees only"
@@ -241,6 +242,18 @@ tibia-ios:
 
 cdn:
 	@python3 "$(HERE)/tools/publish/local_cdn.py" --desktop --wasm
+
+# Soft-owned WasmHostAbi: regenerate keepalives from a pack SIDE_MODULE.
+# Usage: make host-exports IDLEOT_MOD_WASM=path/to/mod.wasm
+#    or: make host-exports MOD_WASM=path/to/mod.wasm
+host-exports:
+	@mod="$(or $(IDLEOT_MOD_WASM),$(MOD_WASM))"; \
+	  if [[ -z "$$mod" || ! -f "$$mod" ]]; then \
+	    echo "[host-exports] set IDLEOT_MOD_WASM=…/native/mod.wasm (or MOD_WASM=)" >&2; \
+	    exit 1; \
+	  fi; \
+	  bash "$(HERE)/scripts/lifecycle/lib/gen-host-exports.sh" "$$mod"; \
+	  echo "[host-exports] commit cmake/host_exports.json and rebuild Soft wasm"
 
 publish-assets:
 	@python3 "$(HERE)/tools/publish/cli.py" assets $(ARGS)

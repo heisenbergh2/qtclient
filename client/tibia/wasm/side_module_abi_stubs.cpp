@@ -5,6 +5,7 @@
 #if defined(__EMSCRIPTEN__)
 
 #include <cstdio>
+#include <cstring>
 
 extern "C" void __cxa_throw(void* thrown, void* /*tinfo*/, void (*dest)(void*))
 {
@@ -14,6 +15,15 @@ extern "C" void __cxa_throw(void* thrown, void* /*tinfo*/, void (*dest)(void*))
         stderr);
     if (dest && thrown)
         dest(thrown);
+}
+
+// Soft may never call memcmp (inlined / DCE). IdleOT SIDE_MODULEs still import
+// it via env; --export-if-defined=memcmp only works if the symbol is linked.
+// Keep a live reference so host_exports.rsp can export it (Client:ci wasm).
+extern "C" {
+__attribute__((used)) static void* const qtclient_keepalive_memcmp =
+    reinterpret_cast<void*>(static_cast<int (*)(const void*, const void*, std::size_t)>(
+        &std::memcmp));
 }
 
 #endif

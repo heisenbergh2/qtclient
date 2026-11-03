@@ -201,6 +201,7 @@ def wasm() -> int:
     doc["web"] = {"stamp": f"{stat.st_size}-{stat.st_mtime_ns}"}
     write_dev(doc)
     print(f"[dev-cdn] wasm -> {dest_dir} ({doc['web']['stamp']})")
+    _resync_tip_pack(src_dir, dest_dir)
     # CipSoft tip installs qtclient from tibiaclient-web-current — keep it in sync
     # with the content-addressed slice (Play loads tibia from that package).
     rc = tibia_client_web(src_dir)
@@ -214,11 +215,20 @@ def _sha256(data: bytes) -> str:
 
 
 def _cip_file_record(dest_dir: Path, localfile: str, data: bytes) -> dict:
-    """CIP package.json file entry + write <localfile>.lzma beside the unpacked blob."""
+    """CIP package.json file entry + tip-local .lzma + content-addressed blob.
+
+    /play always fetches `/content/<aa>/<packedhash>` (see tibia-browser
+    contentUrl). Writing only beside the tip leaves package.json hashes 404.
+    """
+    # Late import: content_store lives next to this module.
+    import content_store  # noqa: PLC0415
+
     packed = lzma.compress(data, format=lzma.FORMAT_ALONE)
     packed_hash = _sha256(packed)
     lzma_name = f"{localfile}.lzma"
     (dest_dir / lzma_name).write_bytes(packed)
+    # Same store full assemble uses — required for tipWarm / contentUrl boots.
+    content_store.put_blob(CDN / "content", packed)
     return {
         "url": lzma_name,
         "localfile": localfile,
@@ -264,8 +274,34 @@ def tibia_client_web(src_dir: Path | None = None) -> int:
     }
     (dest_dir / "package.json").write_text(json.dumps(pkg, indent=2) + "\n")
     (dest_dir / "package.json.version").write_text(stamp + "\n")
+    # Keep tip pack when Soft wasm rebuild overwrites floating tip files.
+    _resync_tip_pack(src_dir, dest_dir)
     print(f"[dev-cdn] tibiaclient-web -> {dest_dir} ({stamp})")
     return 0
+
+
+def _resync_tip_pack(src_dir: Path, dest_dir: Path) -> None:
+    """Copy mods/<id> from the wasm build tip onto the CDN floating tip if present."""
+    build_root = src_dir
+    # bin/ vs flat layout
+    for cand in (src_dir, src_dir.parent, OTC / "build" / "tibia-wasm"):
+        mods = cand / "mods"
+        if mods.is_dir():
+            build_root = cand
+            break
+    else:
+        return
+    packs = [p for p in (build_root / "mods").iterdir() if p.is_dir() and (p / "mod.json").is_file()]
+    if not packs:
+        return
+    # Single tip pack slot — prefer idleot, else highest-priority name.
+    pack = next((p for p in packs if p.name == "idleot"), packs[0])
+    out = dest_dir / "mods" / pack.name
+    if out.exists():
+        shutil.rmtree(out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(pack, out)
+    print(f"[dev-cdn] tip pack -> {out}")
 
 
 def launcher() -> int:
