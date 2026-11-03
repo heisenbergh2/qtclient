@@ -48,6 +48,10 @@ function(cip_codegen target)
     COMMENT "Generating CIP QObject bases from client/upstream/contract"
     VERBATIM)
 
+  # Named target so STATIC linked packs can depend on codegen without linking
+  # `tibia` (which would cycle: tibia → qtclient_mod_* → tibia).
+  add_custom_target(cip_codegen_${target} DEPENDS ${outputs})
+
   set(CIP_QMLDIR_ROOT "${out}/qrc" PARENT_SCOPE)
   target_sources(${target} PRIVATE ${sources})
   target_include_directories(${target} PUBLIC "${out}")

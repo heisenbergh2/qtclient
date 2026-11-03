@@ -50,6 +50,11 @@ function(qtclient_add_mod MOD_ID)
   # Consume Soft include/defs without linking the executable (would cycle).
   target_include_directories(${_target} PRIVATE
     "$<TARGET_PROPERTY:tibia,INCLUDE_DIRECTORIES>")
+  # Soft headers (e.g. eventfilters.h → <cip_gen.h>) need codegen before the
+  # pack compiles; include dirs alone do not order the custom command.
+  if(TARGET cip_codegen_tibia)
+    add_dependencies(${_target} cip_codegen_tibia)
+  endif()
   if(QTCLIENT_MOD_INTERNAL)
     target_compile_definitions(${_target} PRIVATE QTCLIENT_MOD_INTERNAL=1)
     target_compile_definitions(${_target} PRIVATE

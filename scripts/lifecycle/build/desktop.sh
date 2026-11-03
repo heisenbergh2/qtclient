@@ -79,8 +79,31 @@ mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE" "$VCPKG_DOWNLOADS" "$CCACHE_DIR"
 
 BUILD_TYPE=Release
 [[ "$DEBUG_BUILD" -eq 1 ]] && BUILD_TYPE=Debug
-JOBS="$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
+# Windows Git Bash may lack sysctl/nproc; never abort the build on that.
+JOBS="$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)"
 export CMAKE_BUILD_PARALLEL_LEVEL="$JOBS"
+
+# Portable sha256 (Git Bash Windows often has neither in a stripped MSVC PATH).
+_sha256() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$@"
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$@"
+  elif command -v openssl >/dev/null 2>&1; then
+    # openssl dgst prints "SHA256(file)= hex" — normalize to "hex  file"
+    if [[ $# -eq 0 ]]; then
+      openssl dgst -sha256 | awk '{print $2}'
+    else
+      local f
+      for f in "$@"; do
+        openssl dgst -sha256 "$f" | awk -v f="$f" '{print $2 "  " f}'
+      done
+    fi
+  else
+    echo "[tibia] need sha256sum, shasum, or openssl" >&2
+    return 127
+  fi
+}
 
 osx_triplet() {
   case "$(uname -m)" in
@@ -181,8 +204,8 @@ if [[ "$WASM_BUILD" -eq 1 ]]; then
     echo "linked-pack=${QTCLIENT_LINKED_PACK:-}"
     echo "launcher-mods=${QTCLIENT_ENABLE_LAUNCHER_MODS:-OFF}"
     printf '%s\n' "${WASM_CMAKE_ARGS[@]}"
-    shasum -a 256 "$OTC/vcpkg.json" "$OTC/vcpkg-configuration.json" 2>/dev/null || true
-  } | shasum -a 256 2>/dev/null | awk '{print $1}'
+    _sha256 "$OTC/vcpkg.json" "$OTC/vcpkg-configuration.json" 2>/dev/null || true
+  } | _sha256 | awk '{print $1}'
 )"
   if [[ -f "$HELPER" ]]; then
     bash "$HELPER" "$BUILD_DIR" "$FP" -- cmake "${WASM_CMAKE_ARGS[@]}"
@@ -320,7 +343,9 @@ cd "$OTC"
 # Do not point cmake elsewhere or wipe this dir mid-build — use this script / make client-build.
 BUILD_DIR="$OTC/build/$PRESET"
 echo "[tibia] desktop preset=$PRESET build=$BUILD_DIR qt=$QT_DESKTOP triplet=$VCPKG_TARGET_TRIPLET"
-if [[ -f "$BUILD_DIR/build.ninja" ]] && pgrep -f "ninja.*-C $BUILD_DIR|ninja -C $BUILD_DIR|cmake --build $BUILD_DIR|cmake --build --preset $PRESET" >/dev/null 2>&1; then
+# pgrep is often missing on Windows Git Bash; never treat that as fatal.
+if [[ -f "$BUILD_DIR/build.ninja" ]] && command -v pgrep >/dev/null 2>&1 \
+  && pgrep -f "ninja.*-C $BUILD_DIR|ninja -C $BUILD_DIR|cmake --build $BUILD_DIR|cmake --build --preset $PRESET" >/dev/null 2>&1; then
   echo "[tibia] WARN: another ninja/cmake build may already be using $BUILD_DIR — wait for it instead of starting a second one" >&2
 fi
 HELPER="$MONOREPO/scripts/cmake-configure-if-needed.sh"
@@ -348,9 +373,10 @@ FP="$(
     echo "mods=${QTCLIENT_ENABLE_MODS:-ON}"
     echo "linked-pack=${QTCLIENT_LINKED_PACK:-}"
     echo "launcher-mods=${QTCLIENT_ENABLE_LAUNCHER_MODS:-OFF}"
-    shasum -a 256 "$OTC/CMakePresets.json" "$OTC/vcpkg.json" 2>/dev/null || true
-  } | shasum -a 256 2>/dev/null | awk '{print $1}'
+    _sha256 "$OTC/CMakePresets.json" "$OTC/vcpkg.json" 2>/dev/null || true
+  } | _sha256 | awk '{print $1}'
 )"
+command -v cmake >/dev/null || { echo "[tibia] cmake not on PATH after env setup" >&2; exit 127; }
 if [[ -f "$HELPER" ]]; then
   bash "$HELPER" "$BUILD_DIR" "$FP" -- \
     cmake --preset "$PRESET" \
