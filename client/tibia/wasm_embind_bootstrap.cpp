@@ -13,39 +13,44 @@
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
 
-#include <climits>
 #include <cstdint>
 #include <limits>
 #include <string>
-
-using emscripten::internal;
 
 namespace {
 
 template <typename T>
 void registerInteger(const char *name)
 {
-    _embind_register_integer(TypeID<T>::get(), name, sizeof(T),
-                             std::numeric_limits<T>::min(),
-                             std::numeric_limits<T>::max());
+    emscripten::internal::_embind_register_integer(
+        emscripten::internal::TypeID<T>::get(), name, sizeof(T),
+        std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
 }
 
 template <typename T>
 void registerBigint(const char *name)
 {
-    _embind_register_bigint(TypeID<T>::get(), name, sizeof(T),
-                            std::numeric_limits<T>::min(),
-                            std::numeric_limits<T>::max());
+    emscripten::internal::_embind_register_bigint(
+        emscripten::internal::TypeID<T>::get(), name, sizeof(T),
+        std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
 }
 
 template <typename T>
 void registerFloat(const char *name)
 {
-    _embind_register_float(TypeID<T>::get(), name, sizeof(T));
+    emscripten::internal::_embind_register_float(
+        emscripten::internal::TypeID<T>::get(), name, sizeof(T));
 }
 
 void registerPrimitives()
 {
+    using emscripten::internal::TypeID;
+    using emscripten::internal::_embind_register_bool;
+    using emscripten::internal::_embind_register_emval;
+    using emscripten::internal::_embind_register_std_string;
+    using emscripten::internal::_embind_register_std_wstring;
+    using emscripten::internal::_embind_register_void;
+
     _embind_register_void(TypeID<void>::get(), "void");
     _embind_register_bool(TypeID<bool>::get(), "bool", true, false);
 
@@ -70,9 +75,6 @@ void registerPrimitives()
     registerFloat<double>("double");
 
     _embind_register_std_string(TypeID<std::string>::get(), "std::string");
-    _embind_register_std_string(
-        TypeID<std::basic_string<unsigned char>>::get(),
-        "std::basic_string<unsigned char>");
     _embind_register_std_wstring(TypeID<std::wstring>::get(), sizeof(wchar_t),
                                  "std::wstring");
     _embind_register_std_wstring(TypeID<std::u16string>::get(), sizeof(char16_t),
@@ -84,8 +86,7 @@ void registerPrimitives()
 
 } // namespace
 
-// Priority 101: before C++ dynamic initializers (default 65535) and before
-// most other constructor() priorities used by Qt / musl helpers.
+// Priority 101: before C++ dynamic initializers (default 65535).
 __attribute__((constructor(101))) static void softEmbindBootstrap()
 {
     registerPrimitives();
