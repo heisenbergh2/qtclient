@@ -530,7 +530,9 @@ elseif(ANDROID)
   endif()
 
 elseif(WASM)
-  option(WASM_USE_WASM_EXCEPTIONS "Use native WebAssembly exception handling" ON)
+  # Qt wasm_multithread ships SJLJ (-fexceptions); native wasm-exceptions
+  # mismatch aborts the tip. Keep OFF unless the Qt sysroot is rebuilt for EH.
+  option(WASM_USE_WASM_EXCEPTIONS "Use native WebAssembly exception handling" OFF)
   # Absolute path; monorepo build.sh may override with data/ottibia/engine/client/browser/shell.html.
   set(WASM_SHELL_FILE "${CMAKE_SOURCE_DIR}/browser/shell.html" CACHE FILEPATH
       "Emscripten --shell-file for the WASM HTML wrapper")
@@ -620,11 +622,11 @@ elseif(WASM)
     list(APPEND WASM_LINK_OPTIONS -sASSERTIONS=1)
   endif()
 
-if(TARGET ${PROJECT_NAME})
-  target_link_options(${PROJECT_NAME} PRIVATE ${WASM_LINK_OPTIONS})
-endif()
+  # Note: add_subdirectory(client) runs before client/tibia creates `tibia`, so
+  # these flags are not applied here. Tip wasm link flags live in
+  # client/tibia/CMakeLists.txt (FETCH, SJLJ, embind bootstrap, Qt memory).
   string(REPLACE ";" " " _WASM_LINK_LOG "${WASM_LINK_OPTIONS}")
-  message(STATUS "WASM link options: ${_WASM_LINK_LOG}")
+  message(STATUS "WASM link options (qtclient_deps CXX only; see tibia CMake): ${_WASM_LINK_LOG}")
   set(CMAKE_EXECUTABLE_SUFFIX ".html")
 
 else() # Linux / macOS

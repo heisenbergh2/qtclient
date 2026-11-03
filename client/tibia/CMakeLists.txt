@@ -752,6 +752,12 @@ if(EMSCRIPTEN)
   target_link_options(tibia PRIVATE "SHELL:-sFETCH=1")
   # Product packs STATIC-link into this tip — no MAIN_MODULE / host_exports.
 
+  # Embind SIOF: register primitives before other dynamic initializers
+  # (see wasm_embind_bootstrap.cpp). Ignore dupes when builtin bindings re-run.
+  target_sources(tibia PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/wasm_embind_bootstrap.cpp")
+  target_link_options(tibia PRIVATE
+    "SHELL:--post-js=${TIBIA_ROOT}/browser/embind-ignore-dupes.js")
+
   # Dev shell: the art pack is preloaded; release builds get it from the CDN sync.
   set(TIBIA_WASM_GRAPHICS_RCC "" CACHE FILEPATH "graphics_resources.rcc to preload into the wasm build")
   if(TIBIA_WASM_GRAPHICS_RCC)
