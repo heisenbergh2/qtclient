@@ -130,7 +130,7 @@ public:
     /// 0 open, 1 optional, 2 hardcore PvP; -1 before a character is chosen.
     int worldType() const { return m_worldType; }
 
-    static constexpr int ClientVersion = 1533;
+    static constexpr int ClientVersion = 1530;
 
     /// The login service's answer for this account; empty before login.
     const authentication::LoginResult& account() const { return m_account; }
