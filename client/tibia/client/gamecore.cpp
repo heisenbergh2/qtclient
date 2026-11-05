@@ -142,10 +142,20 @@ void enableFeatures(const int version)
             off(f);
     }
 
-    on(GameItemShader);
-    on(GameCreatureAttachedEffect);
-    on(GameCreatureShader);
-    on(GameWingsAurasEffectsShader);
+    // These are OTClient/Rubik protocol extensions, not part of the stock
+    // CIP 15.30 wire format. Reading them without an explicit server-side
+    // contract consumes bytes from map tiles/outfits and desynchronizes the
+    // following packet. Keep the standard protocol safe by default; a
+    // server that deliberately sends the extension can opt in at launch.
+    bool extensionValueOk = false;
+    const int enableOtclientExtensions = qEnvironmentVariableIntValue(
+        "QTCLIENT_ENABLE_OTCLIENT_PROTOCOL_EXTENSIONS", &extensionValueOk);
+    if (extensionValueOk && enableOtclientExtensions != 0) {
+        on(GameItemShader);
+        on(GameCreatureAttachedEffect);
+        on(GameCreatureShader);
+        on(GameWingsAurasEffectsShader);
+    }
 }
 
 int gameStartHook = 0;
