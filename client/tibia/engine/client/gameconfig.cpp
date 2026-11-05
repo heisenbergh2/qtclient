@@ -13,9 +13,13 @@ void GameConfig::init()
     m_drawTyping = false;
     m_typingIcon = "/images/game/console/typing";
 
-    m_visibleSqm = 12;
-    m_mapViewPort = MapViewport::maxAwareViewPort(m_visibleSqm);
-    m_extendedViewUI = true;
+    // Astralis 15.30 uses the standard 18x14 wire map (8/9 left/right,
+    // 6/7 top/bottom). A larger receive area consumes subsequent packet
+    // fields as tiles and desynchronizes the initial 0x64 map description.
+    // Keep the legacy visible area; setup.otml is not parsed here.
+    m_visibleSqm = 0;
+    m_mapViewPort = Size(8, 6);
+    m_extendedViewUI = false;
     m_mapMaxZ = 15;
     m_mapSeaFloor = 7;
     m_mapUndergroundFloorRange = 8;
